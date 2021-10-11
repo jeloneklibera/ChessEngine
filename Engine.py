@@ -1,0 +1,1 @@
+"""Klasa odpowiedzialna za przechowywanie wszystkich informacji dotyczących stanu gry"""
