@@ -64,7 +64,13 @@ def drawBoard(screen):
 Rysuje figury na szachownicy w oparciu o aktualny stan gry: GamesState.board
 """
 def drawPieces(screen, board):
-    pass
+    for r in range(DIMENSION):
+        for c in range(DIMENSION):
+            piece = board[r][c]
+            if piece != "--": #Sprawdzenie czy pole nie jest puste
+                screen.blit(IMAGES[piece], p.Rect(c*SQ_SIZE, r*SQ_SIZE, SQ_SIZE, SQ_SIZE))
+
+
 
 
 if __name__ == "__main__":
