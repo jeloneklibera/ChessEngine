@@ -18,7 +18,7 @@ Inicjalizuje globalny słownik obrazów. Zostanie wywołane tylko jeden raz w fu
 def load_images():
     pieces = ["wp", "wR", "wN", "wB", "wQ", "wK", "bp", "bR", "bN", "bB", "bQ", "bK"]
     for piece in pieces:
-        IMAGES[piece] = p.transform.scale(p.image.load("resources/" + piece + ".png"), (SQ_SIZE, SQ_SIZE))
+        IMAGES[piece] = p.transform.scale(p.image.load("resources/images/" + piece + ".png"), (SQ_SIZE, SQ_SIZE))
 
 """
 Główny sterownik kodu. Obsługuje komendy wejściowe użytkownika i interfejs graficzny
@@ -30,10 +30,45 @@ def main():
     clock = p.time.Clock()
     screen.fill(p.Color("white"))
     gs = Engine.GameState() #inicjalizacja obiektu Stanu Gry
-    print(gs.board)
+    load_images()
+    running = True
+    while running:
+        for e in p.event.get():
+            if e.type == p.QUIT:
+                running = False
+        draw_game_state(screen, gs)
+        clock.tick(MAX_FPS)
+        p.display.flip()
 
 
-main()
+"""
+Odpowiedzialna za grafikę powiązaną z danym stanem gry 
+"""
+def draw_game_state(screen, gs):
+    drawBoard(screen) #rysuje pola na szachownicy
+    #TODO: Podkreślanie figur, sugestie ruchów
+    drawPieces(screen, gs.board) #rysuje figury szachowe na polach szachownicy 
+
+
+"""
+rysuje pola na szachownicy. Pole w lewym górnym rogu jest jasnego koloru
+"""
+def drawBoard(screen):
+    colors = [p.Color("gold"), p.Color("brown")]
+    for r in range(DIMENSION):
+        for c in range(DIMENSION):
+            color = colors[((r+c)%2)] 
+            p.draw.rect(screen, color, p.Rect(c*SQ_SIZE, r*SQ_SIZE, SQ_SIZE, SQ_SIZE))
+
+"""
+Rysuje figury na szachownicy w oparciu o aktualny stan gry: GamesState.board
+"""
+def drawPieces(screen, board):
+    pass
+
+
+if __name__ == "__main__":
+    main()
 
 
 
