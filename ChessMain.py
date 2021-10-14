@@ -32,10 +32,19 @@ def main():
     gs = Engine.GameState() #inicjalizacja obiektu Stanu Gry
     load_images()
     running = True
+    sq_selected = () #początkowo żadne pole nie jest zaznaczone, śledzi ostatnie kliknięcie użytkownika (krotka: (row, col))
+    player_clicks = [] #śledzi kliknięcia użytkownika (dwie krotki: [(6, 4), (4, 4)] - odpowiada ruchowi pionka o dwa pola)
     while running:
         for e in p.event.get():
             if e.type == p.QUIT:
                 running = False
+            elif e.type == p.MOUSEBUTTONDOWN:
+                location = p.mouse.get_pos() #(x,y) pozycja kursora
+                col = location[0] // SQ_SIZE
+                row = location[1] // SQ_SIZE
+                if sq_selected == (row, col): #użytkownik kliknął na to samo pole dwukrotnie, odznaczenie zaznaczenia
+                    sq_selected = ()
+                sq_selected = (row, col)
         draw_game_state(screen, gs)
         clock.tick(MAX_FPS)
         p.display.flip()
