@@ -20,3 +20,13 @@ class GameState():
             ["wR", "wN", "wB", "wQ", "wK", "wB", "wN", "wR"]]
         self.whiteToMove = True
         self.moveLog = []
+
+
+class Move():
+    def __init__(self, startSq, endSq, board):
+        self.start_row = startSq[0]
+        self.start_column = startSq[1]
+        self.end_row = endSq[0]
+        self.end_column = endSq[1]
+        self.piece_moved = board[[self.start_row][self.start_col]]
+        self.piece_captured = board[[self.end_row][self.end_column]]
