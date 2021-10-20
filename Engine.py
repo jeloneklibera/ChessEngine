@@ -44,8 +44,8 @@ class Move():
         self.start_column = startSq[1]
         self.end_row = endSq[0]
         self.end_column = endSq[1]
-        self.piece_moved = board[[self.start_row][self.start_column]]
-        self.piece_captured = board[[self.end_row][self.end_column]]
+        self.piece_moved = board[self.start_row][self.start_column]
+        self.piece_captured = board[self.end_row][self.end_column]
 
 
     def get_chess_notation(self):
