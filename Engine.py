@@ -23,6 +23,17 @@ class GameState():
 
 
 class Move():
+    
+    # mapowanie kluczy na wartości
+    # klucz : wartość
+    ranks_to_rows = {"1": 7, "2": 6, "3": 5, "4": 4,
+                    "5": 3, "6": 2, "7": 1, "8": 0}
+    rows_to_ranks = {v: k for k, v in ranks_to_rows.items()}
+    files_to_cols = {"a": 0, "b" : 1, "c": 2, "d": 3, "e": 4, "f": 5, "g": 6, "h": 7}
+    cols_to_files = {v: k for k, v in files_to_cols.items()}
+    
+
+
     def __init__(self, startSq, endSq, board):
         self.start_row = startSq[0]
         self.start_column = startSq[1]
