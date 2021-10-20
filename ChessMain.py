@@ -43,8 +43,18 @@ def main():
                 col = location[0] // SQ_SIZE
                 row = location[1] // SQ_SIZE
                 if sq_selected == (row, col): #użytkownik kliknął na to samo pole dwukrotnie, odznaczenie zaznaczenia
-                    sq_selected = ()
-                sq_selected = (row, col)
+                    sq_selected = () #odznaczenie
+                    player_clicks = [] 
+                else: 
+                    sq_selected = (row, col)
+                    player_clicks.append(sq_selected) #dodanie pierwszego lub drugiego kliknięcia
+                if (len(player_clicks)) == 2: #sytuacja po drugim kliknięciu
+                    move = Engine.Move(player_clicks[0], player_clicks[1], gs.board)
+                    print(move.get_chess_notation())
+                    gs.make_move(move)
+                    sq_selected = () #zresetowanie kliknięc gracza
+                    player_clicks = []
+
         draw_game_state(screen, gs)
         clock.tick(MAX_FPS)
         p.display.flip()
