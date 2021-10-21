@@ -38,6 +38,7 @@ def main():
         for e in p.event.get():
             if e.type == p.QUIT:
                 running = False
+            #obsługa kliknięć myszy
             elif e.type == p.MOUSEBUTTONDOWN:
                 location = p.mouse.get_pos() #(x,y) pozycja kursora
                 col = location[0] // SQ_SIZE
@@ -54,6 +55,11 @@ def main():
                     gs.make_move(move)
                     sq_selected = () #zresetowanie kliknięc gracza
                     player_clicks = []
+            #obsługa klawiszy klawiaturowych
+            elif e.type == p.KEYDOWN:
+                if e.key == p.K_z: #cofnij ruch po kliknięci 'z' na klawiaturze
+                    gs.undo_move() 
+
 
         draw_game_state(screen, gs)
         clock.tick(MAX_FPS)

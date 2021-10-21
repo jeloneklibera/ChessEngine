@@ -21,11 +21,21 @@ class GameState():
         self.whiteToMove = True
         self.moveLog = []
 
+
     def make_move(self, move):
         self.board[move.start_row][move.start_column] = "--"
         self.board[move.end_row][move.end_column] = move.piece_moved
         self.moveLog.append(move) #dodanie wykonanego ruchu do logu
         self.whiteToMove = not self.whiteToMove #zmiana tury 
+
+
+    def undo_move(self):
+        if len(self.moveLog) != 0: #upewnienie się, że istnieje jakikolwiek ruch, który można cofnąć
+            move = self.moveLog.pop()
+            self.board[move.start_row][move.start_column] = move.piece_moved
+            self.board[move.end_row][move.end_column] = move.piece_captured
+            self.whiteToMove = not self.whiteToMove
+
 
 class Move():
     
