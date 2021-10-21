@@ -37,6 +37,43 @@ class GameState():
             self.whiteToMove = not self.whiteToMove
 
 
+    '''
+    Wszystkie ruchy, które mogą dać szacha
+    '''
+    def get_valid_moves(self):
+        return self.get_all_possible_moves()
+
+    '''
+    Wszystkie ruchy, które nie mogą dać szacha
+    '''
+    def get_all_possible_moves(self):
+        moves = [Move((6,4), (4,4), self.board)]
+        for row in range(len(self.board)): #iteracja po rzędach
+            for column in range(len(self.board[row])): #iteracja po kolumnach w danym rzędzie
+                turn = self.board[row][column][0]  #w celu określenia koloru figury, pobiera pierwszą literę z oznaczenia figury (b: black, w: white, -: puste pole)
+                if (turn == 'w' and self.whiteToMove) and (turn == 'b' and not self.whiteToMove):
+                    piece = self.board[row][column][1] #w celu określenia rodzaju figury, pobiera drugą literę z oznaczenia figury
+                    if piece == 'p':
+                        self.get_pawn_moves(row, column, moves)
+                    elif piece == 'R':
+                        self.get_rook_moves(row, column, moves)
+        return moves
+
+
+
+    '''
+    Pobiera wszystkie ruchy pionków stojących na row, column i dodaje te ruchy do listy moves
+    '''
+    def get_pawn_moves(self, row, column, moves):
+        pass
+
+    '''
+    Pobiera wszystkie ruchy wież stojących na row, column i dodaje te ruchy do listy moves
+    '''
+    def get_rook_moves(self, row, column, moves):
+        pass
+
+
 class Move():
     
     # mapowanie kluczy na wartości
@@ -56,7 +93,18 @@ class Move():
         self.end_column = endSq[1]
         self.piece_moved = board[self.start_row][self.start_column]
         self.piece_captured = board[self.end_row][self.end_column]
+        self.move_id = self.start_row * 1000 + self.start_column * 100 + self.end_row * 10 + self.end_column #unikalne ID ruchu
+        
 
+
+
+    '''
+    Przesłanianie metody równościowej
+    '''
+    def __eq__(self, other):
+        if isinstance(other, Move):
+            return self.move_id == other.move_id
+        return False
 
     def get_chess_notation(self):
         #TODO: Zmodyfikowac metode, aby notacja przypominala jeszcze bardziej prawdziwa notacje szachowa

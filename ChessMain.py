@@ -30,6 +30,9 @@ def main():
     clock = p.time.Clock()
     screen.fill(p.Color("white"))
     gs = Engine.GameState() #inicjalizacja obiektu Stanu Gry
+    valid_moves = gs.get_valid_moves()
+    move_made = False #flaga sprawdzająca czy ruch został wykonany
+
     load_images()
     running = True
     sq_selected = () #początkowo żadne pole nie jest zaznaczone, śledzi ostatnie kliknięcie użytkownika (krotka: (row, col))
@@ -52,14 +55,20 @@ def main():
                 if (len(player_clicks)) == 2: #sytuacja po drugim kliknięciu
                     move = Engine.Move(player_clicks[0], player_clicks[1], gs.board)
                     print(move.get_chess_notation())
-                    gs.make_move(move)
+                    if move in valid_moves:
+                        gs.make_move(move)
+                        move_made = True
                     sq_selected = () #zresetowanie kliknięc gracza
                     player_clicks = []
             #obsługa klawiszy klawiaturowych
             elif e.type == p.KEYDOWN:
                 if e.key == p.K_z: #cofnij ruch po kliknięci 'z' na klawiaturze
                     gs.undo_move() 
+                    move_made = True
 
+        if move_made:
+            valid_moves = gs.get_valid_moves()
+            move_made = False
 
         draw_game_state(screen, gs)
         clock.tick(MAX_FPS)
