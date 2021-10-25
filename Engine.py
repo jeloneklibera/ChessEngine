@@ -69,7 +69,13 @@ class GameState():
                 moves.append(Move((row, column), (row-1, column), self.board))
                 if row == 6 and self.board[row-2][column] == "--": #ruch białego pionka o dwa pola do przodu, z pozycji startowej
                     moves.append(Move((row, column), (row-2, column), self.board)) 
-
+            if column - 1 >= 0: #bicie białym pionkiem w lewo
+                if self.board[row - 1][column - 1][0] == 'b':  #sprawdzenie czy na polu do bicia stoi czarna figura
+                    moves.append(Move((row, column),(row-1, column-1), self.board))
+            if column + 1 <= 7: #bicie białym pionkiem w prawo
+                if self.board[row -1][column + 1][0] == 'b': #sprawdzenie czy na polu do bicia stoi czarna figura
+                    moves.append(Move((row, column), (row-1, column+1), self.board))
+            
 
 
     '''
