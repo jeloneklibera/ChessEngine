@@ -47,11 +47,11 @@ class GameState():
     Wszystkie ruchy, które nie mogą dać szacha
     '''
     def get_all_possible_moves(self):
-        moves = [Move((6,4), (4,4), self.board)]
+        moves = []
         for row in range(len(self.board)): #iteracja po rzędach
             for column in range(len(self.board[row])): #iteracja po kolumnach w danym rzędzie
                 turn = self.board[row][column][0]  #w celu określenia koloru figury, pobiera pierwszą literę z oznaczenia figury (b: black, w: white, -: puste pole)
-                if (turn == 'w' and self.whiteToMove) and (turn == 'b' and not self.whiteToMove):
+                if (turn == 'w' and self.whiteToMove) or (turn == 'b' and not self.whiteToMove):
                     piece = self.board[row][column][1] #w celu określenia rodzaju figury, pobiera drugą literę z oznaczenia figury
                     if piece == 'p':
                         self.get_pawn_moves(row, column, moves)
@@ -60,12 +60,17 @@ class GameState():
         return moves
 
 
-
     '''
     Pobiera wszystkie ruchy pionków stojących na row, column i dodaje te ruchy do listy moves
     '''
     def get_pawn_moves(self, row, column, moves):
-        pass
+        if self.whiteToMove: #zasady ruchu dla białych pionków
+            if self.board[row-1][column] == "--": #ruch białego pionka o jedno pole do przodu
+                moves.append(Move((row, column), (row-1, column), self.board))
+                if row == 6 and self.board[row-2][column] == "--": #ruch białego pionka o dwa pola do przodu, z pozycji startowej
+                    moves.append(Move((row, column), (row-2, column), self.board)) 
+
+
 
     '''
     Pobiera wszystkie ruchy wież stojących na row, column i dodaje te ruchy do listy moves
