@@ -12,7 +12,7 @@ class GameState():
         self.board = [
             ["bR", "bN", "bB", "bQ", "bK", "bB", "bN", "bR"], 
             ["bp", "bp", "bp", "bp", "bp", "bp", "bp", "bp"],
-            ["--", "--", "--", "--","--", "--","--", "--"],
+            ["--", "--", "--", "wp","--", "--","--", "--"],
             ["--", "--", "--", "--","--", "--","--", "--"],
             ["--", "--", "--", "--","--", "--","--", "--"],
             ["--", "--", "--", "--","--", "--","--", "--"],
@@ -65,7 +65,7 @@ class GameState():
     '''
     def get_pawn_moves(self, row, column, moves):
         if self.whiteToMove: #zasady ruchu dla białych pionków
-            if self.board[row-1][column] == "--": #ruch białego pionka o jedno pole do przodu
+            if self.board[row-1][column] == "--": #ruch białego pionka o jedno pole do przodu (w górę szachownicy)
                 moves.append(Move((row, column), (row-1, column), self.board))
                 if row == 6 and self.board[row-2][column] == "--": #ruch białego pionka o dwa pola do przodu, z pozycji startowej
                     moves.append(Move((row, column), (row-2, column), self.board)) 
@@ -75,6 +75,21 @@ class GameState():
             if column + 1 <= 7: #bicie białym pionkiem w prawo
                 if self.board[row -1][column + 1][0] == 'b': #sprawdzenie czy na polu do bicia stoi czarna figura
                     moves.append(Move((row, column), (row-1, column+1), self.board))
+        else: #zasady ruchu dla czarnych pionków
+            if self.board[row+1][column == "--"]: #ruch białego pionka o jedno pole do przodu (w dół szachownicy)
+                moves.append(Move((row, column), (row+1, column), self.board))
+                if row == 1 and self.board[row+2][column] == "--": #ruch czarnego pionka o dwa pola do przodu (w dół szachownicy), z pozycji startowej
+                    moves.append(Move((row, column), (row+2, column), self.board))
+            if column - 1 >=0: #bicie czarnym pionkiem w lewo
+                if self.board[row+1][column-1][0] == 'w': #sprawdzenie czy na polu do bicia stoi biała figura
+                    moves.append(Move((row, column), (row+1, column-1), self.board))
+            if column + 1 <= 7: #bicie czarnym pionkiem w prawo
+                if self.board[row+1][column+1][0] == 'w': #sprawdzenie czy na polu do bicia stoi biała figura
+                    moves.append(Move((row, column), (row+1, column+1), self.board))
+
+    
+
+
             
 
 
