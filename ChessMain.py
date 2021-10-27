@@ -88,7 +88,7 @@ def draw_game_state(screen, gs):
 rysuje pola na szachownicy. Pole w lewym górnym rogu jest jasnego koloru
 """
 def drawBoard(screen):
-    colors = [p.Color("gold"), p.Color("brown")]
+    colors = ["#eae2b7", "#277da1"]
     for r in range(DIMENSION):
         for c in range(DIMENSION):
             color = colors[((r+c)%2)] 
