@@ -54,12 +54,14 @@ def main():
                     player_clicks.append(sq_selected) #dodanie pierwszego lub drugiego kliknięcia
                 if (len(player_clicks)) == 2: #sytuacja po drugim kliknięciu
                     move = Engine.Move(player_clicks[0], player_clicks[1], gs.board)
-                    print(move.get_chess_notation())
                     if move in valid_moves:
                         gs.make_move(move)
                         move_made = True
-                    sq_selected = () #zresetowanie kliknięc gracza
-                    player_clicks = []
+                        sq_selected = () #zresetowanie kliknięc gracza
+                        player_clicks = []
+                        print(move.get_chess_notation())
+                    else:
+                        player_clicks = [sq_selected]
             #obsługa klawiszy klawiaturowych
             elif e.type == p.KEYDOWN:
                 if e.key == p.K_z: #cofnij ruch po kliknięci 'z' na klawiaturze
