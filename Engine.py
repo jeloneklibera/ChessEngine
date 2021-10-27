@@ -18,6 +18,8 @@ class GameState():
             ["--", "--", "--", "--","--", "--","--", "--"],
             ["wp", "wp", "wp", "wp", "wp", "wp", "wp", "wp"],
             ["wR", "wN", "wB", "wQ", "wK", "wB", "wN", "wR"]]
+        self.move_functions = {"p": self.get_pawn_moves, "R": self.get_rook_moves, "N": self.get_knight_moves,
+                               "B": self.get_bishop_moves, "Q": self.get_queen_moves, "K": self.get_king_moves}
         self.whiteToMove = True
         self.moveLog = []
 
@@ -53,10 +55,7 @@ class GameState():
                 turn = self.board[row][column][0]  #w celu określenia koloru figury, pobiera pierwszą literę z oznaczenia figury (b: black, w: white, -: puste pole)
                 if (turn == 'w' and self.whiteToMove) or (turn == 'b' and not self.whiteToMove):
                     piece = self.board[row][column][1] #w celu określenia rodzaju figury, pobiera drugą literę z oznaczenia figury
-                    if piece == 'p':
-                        self.get_pawn_moves(row, column, moves)
-                    elif piece == 'R':
-                        self.get_rook_moves(row, column, moves)
+                    self.move_functions[piece](row, column, moves)
         return moves
 
 
@@ -87,16 +86,67 @@ class GameState():
                 if self.board[row+1][column+1][0] == 'w': #sprawdzenie czy na polu do bicia stoi biała figura
                     moves.append(Move((row, column), (row+1, column+1), self.board))
 
-    
-
-
-            
-
 
     '''
     Pobiera wszystkie ruchy wież stojących na row, column i dodaje te ruchy do listy moves
     '''
     def get_rook_moves(self, row, column, moves):
+        directions = ((-1, 0), (0, -1), (1, 0), (0, 1)) #góra, lewo, dół, prawo
+        enemy_color = "b" if self.whiteToMove else "w"
+        for d in directions: #sprawdzanie dostępnych pól we wszystkich kierunkach
+            for i in range(1, 8):
+                end_row = row + d[0] * i
+                end_column = column + d[1] * i
+                if 0 <= end_row < 8 and 0 <= end_column < 8: #zapewnienie, że znajdujemy się na planszy
+                    stop_square = self.board[end_row][end_column]
+                    if stop_square == "--": #puste pole
+                        moves.append(Move((row, column), (end_row, end_column), self.board))
+                    elif stop_square[0] == enemy_color: #figura przeciwnika, sprawdzanie po pierwszej literze: [0]
+                        moves.append(Move((row, column), (end_row, end_column), self.board))
+                        break
+                    else: #własna figura
+                        break
+                else: #sytuacja, gdy pola są poza planszą
+                    break
+
+    '''
+    Pobiera wszystkie ruchy skoczków stojących na row, column i dodaje te ruchy do listy moves
+    '''
+    def get_knight_moves(self, row, column, moves):
+        pass
+
+    '''
+    Pobiera wszystkie ruchy gońców stojących na row, column i dodaje te ruchy do listy moves
+    '''
+    def get_bishop_moves(self, row, column, moves):
+        directions = ((-1, -1), (-1, 1), (1, -1), (1, 1)) #określenie kierunków po przekątnych
+        enemy_color = "b" if self.whiteToMove else "w"
+        for d in directions: #sprawdzanie dostępnych pól we wszystkich określonych kierunkach
+            for i in range(1, 8):
+                end_row = row + d[0] * i
+                end_column = column + d[1] * i
+                if 0 <= end_row < 8 and 0 <= end_column < 8:  #zapewnienie, że znajdujemy się na planszy
+                    stop_square = self.board[end_row][end_column]
+                    if stop_square == "--": #puste pole
+                        moves.append(Move((row, column), (end_row, end_column), self.board))
+                    elif stop_square[0] == enemy_color: #figura przeciwnika, sprawdzanie po pierwszej literze: [0]
+                        moves.append(Move((row, column), (end_row, end_column), self.board))
+                        break
+                    else: #własna figura
+                        break 
+                else:  #sytuacja, gdy pola są poza planszą
+                    break
+
+        '''
+    Pobiera wszystkie ruchy królowych stojących na row, column i dodaje te ruchy do listy moves
+    '''
+    def get_queen_moves(self, row, column, moves):
+        pass
+
+        '''
+    Pobiera wszystkie ruchy króli stojących na row, column i dodaje te ruchy do listy moves
+    '''
+    def get_king_moves(self, row, column, moves):
         pass
 
 
