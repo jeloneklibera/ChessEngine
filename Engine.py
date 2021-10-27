@@ -156,8 +156,15 @@ class GameState():
     Pobiera wszystkie ruchy króli stojących na row, column i dodaje te ruchy do listy moves
     '''
     def get_king_moves(self, row, column, moves):
-        pass
-
+        king_moves = ((-1, -1), (-1, 0), (-1, 1), (0, 1), (1, 1), (1, 0), (0, 1), (1, -1)) #pola na które może przejść król, wszystkie przyległe do obecnej pozycji
+        own_color = "w" if self.whiteToMove else "b"
+        for i in range(8):
+            end_row = row + king_moves[i][0]
+            end_column = column + king_moves[i][1]
+            if 0 <= end_row < 8 and 0 <= end_column < 8:
+                stop_square = self.board[end_row][end_column]
+                if stop_square != own_color:
+                    moves.append(Move((row, column), (end_row, end_column), self.board))
 
 class Move():
     
