@@ -94,7 +94,7 @@ class GameState():
         directions = ((-1, 0), (0, -1), (1, 0), (0, 1)) #góra, lewo, dół, prawo
         enemy_color = "b" if self.whiteToMove else "w"
         for d in directions: #sprawdzanie dostępnych pól we wszystkich kierunkach
-            for i in range(1, 8):
+            for i in range(1, 8): #maksymalna liczba pól o jakie może sie poruszyć to 7
                 end_row = row + d[0] * i
                 end_column = column + d[1] * i
                 if 0 <= end_row < 8 and 0 <= end_column < 8: #zapewnienie, że znajdujemy się na planszy
@@ -113,7 +113,15 @@ class GameState():
     Pobiera wszystkie ruchy skoczków stojących na row, column i dodaje te ruchy do listy moves
     '''
     def get_knight_moves(self, row, column, moves):
-        pass
+        knight_moves = ((-2, -1), (-2, 1), (2, -1), (2, 1), (-1, -2), (-1, 2), (1, -2), (1, 2)) #pola na które może skoczyć skoczek, w kształcie litery L
+        own_color = "w" if self.whiteToMove else "b" #figura tego samego koloru
+        for m in knight_moves:
+            end_row = row + m[0]
+            end_column = column + m[1]
+            if 0 <= end_row < 8 and 0 <= end_column < 8: #warunek pozostawania na szachownicy
+                stop_square = self.board[end_row][end_column]
+                if stop_square[0] != own_color: #puste pole lub figura przeciwnika
+                    moves.append(Move((row, column), (end_row, end_column), self.board))
 
     '''
     Pobiera wszystkie ruchy gońców stojących na row, column i dodaje te ruchy do listy moves
@@ -122,7 +130,7 @@ class GameState():
         directions = ((-1, -1), (-1, 1), (1, -1), (1, 1)) #określenie kierunków po przekątnych
         enemy_color = "b" if self.whiteToMove else "w"
         for d in directions: #sprawdzanie dostępnych pól we wszystkich określonych kierunkach
-            for i in range(1, 8):
+            for i in range(1, 8): #maksymalna liczba pól o jakie może sie poruszyć to 7
                 end_row = row + d[0] * i
                 end_column = column + d[1] * i
                 if 0 <= end_row < 8 and 0 <= end_column < 8:  #zapewnienie, że znajdujemy się na planszy
@@ -141,7 +149,8 @@ class GameState():
     Pobiera wszystkie ruchy królowych stojących na row, column i dodaje te ruchy do listy moves
     '''
     def get_queen_moves(self, row, column, moves):
-        pass
+        self.get_rook_moves(row, column, moves)
+        self.get_bishop_moves(row, column, moves)
 
         '''
     Pobiera wszystkie ruchy króli stojących na row, column i dodaje te ruchy do listy moves
