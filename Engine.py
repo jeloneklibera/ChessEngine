@@ -22,14 +22,20 @@ class GameState():
                                "B": self.get_bishop_moves, "Q": self.get_queen_moves, "K": self.get_king_moves}
         self.whiteToMove = True
         self.moveLog = []
-
+        self.white_king_location = (7, 4)
+        self.black_king_location = (0, 4)
 
     def make_move(self, move):
         self.board[move.start_row][move.start_column] = "--"
         self.board[move.end_row][move.end_column] = move.piece_moved
         self.moveLog.append(move) #dodanie wykonanego ruchu do logu
         self.whiteToMove = not self.whiteToMove #zmiana tury 
-
+        #aktualizacja pozycji króla po jego ruchu
+        if move.piece_moved == "wK":
+            self.white_king_location = (move.end_row, move.end_column)
+        elif move.piece_moved == "bK":
+            self.black_king_location = (move.end_row, move.end_column)
+            
 
     def undo_move(self):
         if len(self.moveLog) != 0: #upewnienie się, że istnieje jakikolwiek ruch, który można cofnąć
@@ -37,7 +43,10 @@ class GameState():
             self.board[move.start_row][move.start_column] = move.piece_moved
             self.board[move.end_row][move.end_column] = move.piece_captured
             self.whiteToMove = not self.whiteToMove
-
+            if move.piece_moved == "wK":
+                self.white_king_location = (move.start_row, move.start_column)
+            elif move.piece_moved == "bK":
+                self.black_king_location = (move.start_row, move.start_column)
 
     '''
     Wszystkie ruchy, które mogą dać szacha
