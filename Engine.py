@@ -43,6 +43,7 @@ class GameState():
             self.board[move.start_row][move.start_column] = move.piece_moved
             self.board[move.end_row][move.end_column] = move.piece_captured
             self.whiteToMove = not self.whiteToMove
+            #aktualizacja pozycji króla po cofnięciu jego ruchu
             if move.piece_moved == "wK":
                 self.white_king_location = (move.start_row, move.start_column)
             elif move.piece_moved == "bK":
@@ -52,7 +53,41 @@ class GameState():
     Wszystkie ruchy, które mogą dać szacha
     '''
     def get_valid_moves(self):
-        return self.get_all_possible_moves()
+        moves = self.get_all_possible_moves() #wygenerowanie wszystkich możliwych ruchów
+        for i in range(len(moves)-1, -1, -1): #przy usuwaniu elemntów z listy efektywnym podejściem jest iterowanie od końca listy
+            self.make_move(moves[i]) #dla każdego ruchu wykonaj ruch
+            self.whiteToMove = not self.whiteToMove #zamiana tur, ze względu na to, że make_move zmienia turę, po to aby in_check() sprawdziło pozycję króla gracza atakowanego
+            if self.in_check():
+                moves.remove(moves[i])  #usuwa ruch po którym atakowany gracz wciąż znajdowałby się w szachu
+            self.whiteToMove = not self.whiteToMove 
+            self.undo_move()
+        return moves
+
+    """
+    Funkcja sprawdzająca czy gracz, który obecnie ma turę jest szachowany
+    """
+    def in_check(self):
+        if self.whiteToMove:
+            return self.square_under_attack(self.white_king_location[0], self.white_king_location[1])
+        else:
+            return self.square_under_attack(self.black_king_location[0], self.black_king_location[1])
+
+
+    """
+    Funkcja określająca, czy przeciwnik może atakować pole zadane przez (row,column)
+    """
+    def square_under_attack(self, row, column):
+        self.whiteToMove = not self.whiteToMove #przełączenie tury, aby ocenić pozycję z perspektywy gracza atakującego
+        opponent_moves = self.get_all_possible_moves() #wygenerowanie wszystkich możliwych ruchów przeciwnika
+        self.whiteToMove = not self.whiteToMove  #powrót do właściwej tury (gracza, który miał turę przed sprawdzeniem czy jego pozycja jest atakowana)
+        for move in opponent_moves:
+            if move.end_row == row and move.end_column == column:  #pole jest atakowane
+                return True
+        return False #pole nie jest atakowane
+
+
+
+
 
     '''
     Wszystkie ruchy, które nie mogą dać szacha
