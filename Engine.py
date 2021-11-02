@@ -24,6 +24,8 @@ class GameState():
         self.moveLog = []
         self.white_king_location = (7, 4)
         self.black_king_location = (0, 4)
+        self.check_mate = False
+        self.stale_mate = False
 
     def make_move(self, move):
         self.board[move.start_row][move.start_column] = "--"
@@ -61,6 +63,14 @@ class GameState():
                 moves.remove(moves[i])  #usuwa ruch po którym atakowany gracz wciąż znajdowałby się w szachu
             self.whiteToMove = not self.whiteToMove 
             self.undo_move()
+        if len(moves) == 0: #szach mat lub pat
+            if self.in_check():
+                self.check_mate = True
+            else: 
+                self.stale_mate = True
+        else:
+            self.check_mate = False #w sytuacji gdy cofniemy ruch, który spowodował szachmat
+            self.stale_mate - False ##w sytuacji gdy cofniemy ruch, który spowodował pata
         return moves
 
     """
