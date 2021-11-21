@@ -24,8 +24,9 @@ class GameState():
         self.moveLog = []
         self.white_king_location = (7, 4)
         self.black_king_location = (0, 4)
-        self.check_mate = False
-        self.stale_mate = False
+        self.in_check = False
+        self.pins = []
+        self.checks = []
 
     def make_move(self, move):
         self.board[move.start_row][move.start_column] = "--"
@@ -55,23 +56,113 @@ class GameState():
     Wszystkie ruchy, które mogą dać szacha
     '''
     def get_valid_moves(self):
-        moves = self.get_all_possible_moves() #wygenerowanie wszystkich możliwych ruchów
-        for i in range(len(moves)-1, -1, -1): #przy usuwaniu elemntów z listy efektywnym podejściem jest iterowanie od końca listy
-            self.make_move(moves[i]) #dla każdego ruchu wykonaj ruch
-            self.whiteToMove = not self.whiteToMove #zamiana tur, ze względu na to, że make_move zmienia turę, po to aby in_check() sprawdziło pozycję króla gracza atakowanego
-            if self.in_check():
-                moves.remove(moves[i])  #usuwa ruch po którym atakowany gracz wciąż znajdowałby się w szachu
-            self.whiteToMove = not self.whiteToMove 
-            self.undo_move()
-        if len(moves) == 0: #szach mat lub pat
-            if self.in_check():
-                self.check_mate = True
-            else: 
-                self.stale_mate = True
+        moves = []
+        self.in_check, self.pins, self.checks = self.check_for_pins_and_checks()
+        if self.whiteToMove:
+            king_row = self.white_king_location[0]
+            king_column = self.white_king_location[1]
         else:
-            self.check_mate = False #w sytuacji gdy cofniemy ruch, który spowodował szachmat
-            self.stale_mate - False ##w sytuacji gdy cofniemy ruch, który spowodował pata
+            king_row = self.black_king_location[0]
+            king_column = self.black_king_location[1]
+        if self.in_check:
+            if len(self.checks) == 1: #tylko jedna figura szachuje króla, zablokuj szacha lub porusz się królem
+                moves = self.get_all_possible_moves()
+                #Aby zablokować szacha powinno się mieć jakąś figurę pomiędzy przeciwną figurą dającą szacha a królem
+                check = self.checks[0]
+                check_row = check[0]
+                check_column = check[1]
+                piece_checking = self.board[check_row][check_column] #przeciwna figura dająca szacha
+                valid_squares = [] #pola, na które może przejść figura
+                #gdy figurą szachującą jest przeciwny skoczek, należy zbić skoczka lub ruszyć się królem, szach ze strony pozostałych figur można zablokować
+                if piece_checking[1] == "N":
+                    valid_squares = [(check_row, check_column)]
+                else:
+                    for i in range(1, 8):
+                        valid_square = (king_row + check[2] * i, king_column + check[3] * i) #check[2] oraz check[3] są to kierunki z których pochodzi szach
+                        valid_squares.append(valid_square)
+                        if valid_square[0] == check_row and valid_square[1] == check_column: #zbicie szachującej figury, kończy szacha
+                            break
+                #pozbycie się ruchów, które nie blokują szacha lub ruszenia królem
+                for i in range(len(moves)- 1, -1, -1): #w przypadku usuwania z listy bardziej opłaca się iterować od końca listy
+                    if moves[i].piece_moved[1] != "K": #ruch, który nie był poruszeniem się królem, zatem blokujący lub bijący figurę szachującą
+                        if not(moves[i].end_row, moves[i].end_column) in valid_squares: #ruchy, które nie blokują szacha lub nie biją figury szachującej
+                            moves.remove(moves[i])
+            else: #podwójny szach, wymagany ruch króla
+                self.get_king_moves(king_row, king_column, moves)
+        else: #nie ma szacha, wszystkie legalne ruchy dozwolone
+            moves = self.get_all_possible_moves()
         return moves
+
+                    
+
+    def check_for_pins_and_checks(self):
+        pins = [] #pola na których znajduje się włana związana figura oraz kierunek powodujący związanie
+        checks = [] #pola które są szachowane przez przeciwnika
+        in_check = False
+        if self.whiteToMove:
+            enemy_color = "b"
+            ally_color = "w"
+            start_row = self.white_king_location[0]
+            start_column = self.white_king_location[1]
+        else: 
+            enemy_color = "w"
+            ally_color = "b"
+            start_row = self.black_king_location[0]
+            start_column = self.black_king_location[1]
+        #sprawdzenie pól na kierunkach króla pod kątem związań i szachów, śledzenie związań
+        directions = ((-1, 0), (0, -1), (1, 0), (0, 1), (-1, -1), (-1, 1), (1, -1), (1, 1))
+        for j in range(len(directions)):
+            d = directions[j]
+            possible_pin = () #resetowanie możliwych związań
+            for i in range(1, 8):
+                end_row = start_row + d[0] * i
+                end_column = start_column + d[1] * i
+                if 0 <= end_row <8 and 0 <= end_column < 8:
+                    stop_square = self.board[end_row][end_column] #figura na którą napotykamy sprawdzając kierunki wychodzące od króla
+                    if stop_square[0] == ally_color and stop_square[1] != "K":
+                        if possible_pin == (): #pierwsza własna figura- może być związana
+                            possible_pin = (end_row, end_column, d[0], d[1])
+                        else: #druga własna figura, zatem nie ma mowy o związaniu lub szachu
+                            break
+                    elif stop_square[0] == enemy_color:
+                        type_of_piece = stop_square[1]
+                        #5 możliwych scenariuszy:
+                        # 1): prostopadle do króla i wrogą figurą jest wieża
+                        # 2): po przekątnej od króla i wrogą figurą jest goniec
+                        # 3) jedno pole po przekątnej od króla i wrogą figurą jest pionek
+                        # 4) dowolny kierunek od króla i wrogą figurą jest królowa
+                        # 5) dowolny kierunek i odległość jedno pole od króla i wrogą figurą jest król
+                        if (0 <= j <= 3 and type_of_piece == "R") or \
+                                (4 <= j <= 7 and type_of_piece == "B") or \
+                                (i == 1 and type_of_piece == "p" and ((enemy_color == "w" and 6 <= j <= 7) or (enemy_color == "b" and 4 <= j <= 5))) or \
+                                (type_of_piece == "Q") or (i == 1 and type_of_piece == "K"):
+                            if possible_pin == (): #brak blokującej figury, zatem pozycja szachowa
+                                in_check = True
+                                checks.append((end_row, end_column, d[0], d[1]))
+                                break
+                            else: #blokująca figura, zatem związanie
+                                pins.append(possible_pin)
+                                break
+                        else: #figura przeciwnika nie daje pozycji szachowej
+                            break 
+                else: #poza szachownicą
+                    break
+            #Obsługa przypadku gdy figurą dająca szacha jest skoczek
+            knight_moves = ((-2, -1), (-2, 1), (-1, -2), (-1, 2), (1, -2), (1, 2), (2, -1), (2, 1))
+            for m in knight_moves:
+                end_row = start_row + m[0]
+                end_column = start_column + m[1]
+                if 0 <= end_row < 8 and 0 <= end_column < 8:
+                    stop_square = self.board[end_row][end_column]
+                    if stop_square[0] == enemy_color and stop_square[1] == "N": #skoczek przeciwnika atakuje króla gracza 
+                        in_check = True
+                        checks.append(end_row, end_column, m[0], m[1])
+                else: #poza szachownicą
+                    break
+        return in_check, pins, checks
+
+
+
 
     """
     Funkcja sprawdzająca czy gracz, który obecnie ma turę jest szachowany
@@ -117,34 +208,64 @@ class GameState():
     Pobiera wszystkie ruchy pionków stojących na row, column i dodaje te ruchy do listy moves
     '''
     def get_pawn_moves(self, row, column, moves):
+        piece_pinned = False
+        pin_direction = ()
+        for i in range(len(self.pins)-1, -1, -1): 
+            if self.pins[i][0] == row and self.pins[i][1] == column:
+                piece_pinned = True
+                pin_direction = (self.pins[i][2], self.pins[i][3])
+                self.pins.remove(self.pins[i])
+                break
+        
+        
         if self.whiteToMove: #zasady ruchu dla białych pionków
-            if self.board[row-1][column] == "--": #ruch białego pionka o jedno pole do przodu (w górę szachownicy)
-                moves.append(Move((row, column), (row-1, column), self.board))
-                if row == 6 and self.board[row-2][column] == "--": #ruch białego pionka o dwa pola do przodu, z pozycji startowej
-                    moves.append(Move((row, column), (row-2, column), self.board)) 
+            if self.board[row-1][column] == "--":
+                if not piece_pinned or pin_direction == (-1, 0): #ruch o jedno pole do przodu
+                    moves.append(Move((row, column), (row-1, column), self.board))
+                    if row == 6 and self.board[row-2][column] == "--": #ruch o dwa pola do przodu, z pozycji startowej
+                        moves.append(Move((row, column), (row-2, column), self.board))
+
+            #bicia
             if column - 1 >= 0: #bicie białym pionkiem w lewo
                 if self.board[row - 1][column - 1][0] == 'b':  #sprawdzenie czy na polu do bicia stoi czarna figura
-                    moves.append(Move((row, column),(row-1, column-1), self.board))
+                    if not piece_pinned or pin_direction == (-1, -1):
+                        moves.append(Move((row, column),(row-1, column-1), self.board))
             if column + 1 <= 7: #bicie białym pionkiem w prawo
                 if self.board[row -1][column + 1][0] == 'b': #sprawdzenie czy na polu do bicia stoi czarna figura
-                    moves.append(Move((row, column), (row-1, column+1), self.board))
+                    if not piece_pinned or pin_direction == (-1, 1):
+                        moves.append(Move((row, column), (row-1, column+1), self.board))
+
         else: #zasady ruchu dla czarnych pionków
-            if self.board[row+1][column == "--"]: #ruch białego pionka o jedno pole do przodu (w dół szachownicy)
-                moves.append(Move((row, column), (row+1, column), self.board))
-                if row == 1 and self.board[row+2][column] == "--": #ruch czarnego pionka o dwa pola do przodu (w dół szachownicy), z pozycji startowej
-                    moves.append(Move((row, column), (row+2, column), self.board))
-            if column - 1 >=0: #bicie czarnym pionkiem w lewo
+            if self.board[row+1][column] == "--": #ruch białego pionka o jedno pole do przodu (w dół szachownicy)
+                if not piece_pinned or pin_direction == (1, 0):
+                    moves.append(Move((row, column), (row+1, column), self.board))
+                    if row == 1 and self.board[row+2][column] == "--": #ruch czarnego pionka o dwa pola do przodu (w dół szachownicy), z pozycji startowej
+                        moves.append(Move((row, column), (row+2, column), self.board))
+            
+            #bicia
+            if column - 1 >= 0: #bicie czarnym pionkiem w lewo
                 if self.board[row+1][column-1][0] == 'w': #sprawdzenie czy na polu do bicia stoi biała figura
-                    moves.append(Move((row, column), (row+1, column-1), self.board))
+                     if not piece_pinned or pin_direction == (1, -1):
+                        moves.append(Move((row, column), (row+1, column-1), self.board))
             if column + 1 <= 7: #bicie czarnym pionkiem w prawo
                 if self.board[row+1][column+1][0] == 'w': #sprawdzenie czy na polu do bicia stoi biała figura
-                    moves.append(Move((row, column), (row+1, column+1), self.board))
+                    if not piece_pinned or pin_direction == (1, 1):
+                        moves.append(Move((row, column), (row+1, column+1), self.board))
 
 
     '''
     Pobiera wszystkie ruchy wież stojących na row, column i dodaje te ruchy do listy moves
     '''
     def get_rook_moves(self, row, column, moves):
+        piece_pinned = False
+        pin_direction = ()
+        for i in range(len(self.pins)-1, -1, -1):
+            if self.pins[i][0] == row and self.pins[i][1] == column:
+                piece_pinned = True
+                pin_direction = (self.pins[i][2], self.pins[i][3])
+                if self.board[row][column][1] != "Q": #nie mozna usunac dam z wiazania na wiezy, jedynie gonce
+                    self.pins.remove(self.pins[i])
+                break
         directions = ((-1, 0), (0, -1), (1, 0), (0, 1)) #góra, lewo, dół, prawo
         enemy_color = "b" if self.whiteToMove else "w"
         for d in directions: #sprawdzanie dostępnych pól we wszystkich kierunkach
@@ -152,7 +273,8 @@ class GameState():
                 end_row = row + d[0] * i
                 end_column = column + d[1] * i
                 if 0 <= end_row < 8 and 0 <= end_column < 8: #zapewnienie, że znajdujemy się na planszy
-                    stop_square = self.board[end_row][end_column]
+                    if not piece_pinned or pin_direction == d or pin_direction == (-d[0], -d[1]): #ostatni warunek pozwala poruszać się wzdłuż wiązania w przeciwnym kierunku
+                        stop_square = self.board[end_row][end_column]
                     if stop_square == "--": #puste pole
                         moves.append(Move((row, column), (end_row, end_column), self.board))
                     elif stop_square[0] == enemy_color: #figura przeciwnika, sprawdzanie po pierwszej literze: [0]
@@ -167,20 +289,35 @@ class GameState():
     Pobiera wszystkie ruchy skoczków stojących na row, column i dodaje te ruchy do listy moves
     '''
     def get_knight_moves(self, row, column, moves):
-        knight_moves = ((-2, -1), (-2, 1), (2, -1), (2, 1), (-1, -2), (-1, 2), (1, -2), (1, 2)) #pola na które może skoczyć skoczek, w kształcie litery L
+        piece_pinned = False
+        for i in range(len(self.pins)-1, -1, -1):
+            if self.pins[i][0] == row and self.pins[i][1] == column:
+                piece_pinned = True
+                self.pins.remove(self.pins[i])
+                break
+        knight_moves = ((-2, -1), (-2, 1), (-1, -2), (-1, 2), (1, -2), (1, 2), (2, -1), (2, 1)) #pola na które może skoczyć skoczek, w kształcie litery L
         own_color = "w" if self.whiteToMove else "b" #figura tego samego koloru
         for m in knight_moves:
             end_row = row + m[0]
             end_column = column + m[1]
             if 0 <= end_row < 8 and 0 <= end_column < 8: #warunek pozostawania na szachownicy
-                stop_square = self.board[end_row][end_column]
-                if stop_square[0] != own_color: #puste pole lub figura przeciwnika
-                    moves.append(Move((row, column), (end_row, end_column), self.board))
+                if not piece_pinned:
+                    stop_square = self.board[end_row][end_column]
+                    if stop_square[0] != own_color: #puste pole lub figura przeciwnika
+                        moves.append(Move((row, column), (end_row, end_column), self.board))
 
     '''
     Pobiera wszystkie ruchy gońców stojących na row, column i dodaje te ruchy do listy moves
     '''
     def get_bishop_moves(self, row, column, moves):
+        piece_pinned = False
+        pin_direction = ()
+        for i in range(len(self.pins)-1, -1, -1):
+            if self.pins[i][0] == row and self.pins[i][1] == column:
+                piece_pinned = True
+                pin_direction = (self.pins[i][2], self.pins[i][3])
+                self.pins.remove(self.pins[i])
+                break
         directions = ((-1, -1), (-1, 1), (1, -1), (1, 1)) #określenie kierunków po przekątnych
         enemy_color = "b" if self.whiteToMove else "w"
         for d in directions: #sprawdzanie dostępnych pól we wszystkich określonych kierunkach
@@ -188,14 +325,15 @@ class GameState():
                 end_row = row + d[0] * i
                 end_column = column + d[1] * i
                 if 0 <= end_row < 8 and 0 <= end_column < 8:  #zapewnienie, że znajdujemy się na planszy
-                    stop_square = self.board[end_row][end_column]
-                    if stop_square == "--": #puste pole
-                        moves.append(Move((row, column), (end_row, end_column), self.board))
-                    elif stop_square[0] == enemy_color: #figura przeciwnika, sprawdzanie po pierwszej literze: [0]
-                        moves.append(Move((row, column), (end_row, end_column), self.board))
-                        break
-                    else: #własna figura
-                        break 
+                    if not piece_pinned or pin_direction == d or pin_direction == (-d[0], -d[1]):
+                        stop_square = self.board[end_row][end_column]
+                        if stop_square == "--": #puste pole
+                            moves.append(Move((row, column), (end_row, end_column), self.board))
+                        elif stop_square[0] == enemy_color: #figura przeciwnika, sprawdzanie po pierwszej literze: [0]
+                            moves.append(Move((row, column), (end_row, end_column), self.board))
+                            break
+                        else: #własna figura
+                            break 
                 else:  #sytuacja, gdy pola są poza planszą
                     break
 
@@ -210,15 +348,28 @@ class GameState():
     Pobiera wszystkie ruchy króli stojących na row, column i dodaje te ruchy do listy moves
     '''
     def get_king_moves(self, row, column, moves):
-        king_moves = ((-1, -1), (-1, 0), (-1, 1), (0, 1), (1, 1), (1, 0), (0, 1), (1, -1)) #pola na które może przejść król, wszystkie przyległe do obecnej pozycji
+        row_moves = (-1, -1, -1, 0, 0, 1, 1, 1)
+        column_moves = (-1, 0, 1, -1, 1, -1, 0, 1)
         own_color = "w" if self.whiteToMove else "b"
         for i in range(8):
-            end_row = row + king_moves[i][0]
-            end_column = column + king_moves[i][1]
+            end_row = row + row_moves[i]
+            end_column = column + column_moves[i]
             if 0 <= end_row < 8 and 0 <= end_column < 8:
                 stop_square = self.board[end_row][end_column]
-                if stop_square != own_color:
-                    moves.append(Move((row, column), (end_row, end_column), self.board))
+                if stop_square[0] != own_color:
+                    #postawienie króla na stop_square i sprawdzenie czy występuje na nim szach 
+                    if own_color == "w":
+                       self.white_king_location = (end_row, end_column)
+                    else: 
+                        self.black_king_location = (end_row, end_column)
+                    in_check, pins, checks = self.check_for_pins_and_checks()
+                    if not in_check:
+                        moves.append(Move((row, column), (end_row, end_column), self.board))
+                    #postawienie króla z powrotem na jego oryginalnej pozycji
+                    if own_color == "w":
+                        self.white_king_location = (row, column)
+                    else:
+                        self.black_king_location = (row, column)
 
 class Move():
     
