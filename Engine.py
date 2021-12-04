@@ -27,6 +27,9 @@ class GameState():
         self.in_check = False
         self.pins = []
         self.checks = []
+        self.check_mate = False
+        self.stale_mate = False
+        self.en_passant_possible = () #współrzędne pole, na którym jest możliwe bicie w przelocie
 
     def make_move(self, move):
         self.board[move.start_row][move.start_column] = "--"
@@ -38,6 +41,20 @@ class GameState():
             self.white_king_location = (move.end_row, move.end_column)
         elif move.piece_moved == "bK":
             self.black_king_location = (move.end_row, move.end_column)
+        #jeśli pionek porusza się o dwa pola, następny ruch może być biciem enpassant
+        if move.piece_moved[1] == 'p' and abs(move.start_row - move.end_row) == 2:
+            self.en_passant_possible = ((move.end_row + move.start_row) // 2, move.end_column)
+        else:
+            self.en_passant_possible = ()
+        #jeśli ruch jest biciem enpassant, trzeba zaktualizować szachownicę aby zbić pionka
+        if move.en_passant:
+            self.board[move.start_row][move.end_column] = "--"
+        #promocja pionów
+        if move.pawn_promotion:
+            promoted_piece = input("Promote to Q, R, B or N:") #TO-DO do wykorzystania przy rozwijaniu UI
+            self.board[move.end_row][move.end_column] = move.piece_moved[0] + promoted_piece
+
+
             
 
     def undo_move(self):
@@ -51,6 +68,14 @@ class GameState():
                 self.white_king_location = (move.start_row, move.start_column)
             elif move.piece_moved == "bK":
                 self.black_king_location = (move.start_row, move.start_column)
+            #aktualizacja po ruchu enpassant
+            if move.en_passant:
+                self.board[move.end_row][move.end_column] = "--" #Usuwa pionka, który został dodany na niewłaściwym polu
+                self.board[move.start_row][move.end_column] = move.piece_captured #Ustawia z powrotem pionka na polu z którego nastąpiło bicie
+                self.en_passant_possible = (move.end_row, move.end_column) #Dzięki temu mozliwy jest ruch enpassant po cofnięciu ruchu
+            #Cofnięcie ruchu o dwa pola, oraz dodanie możliwości na ponowne bicie enpassant po cofnięciu
+            if move.piece_moved[1] == 'p' and abs(move.start_row - move.end_row) == 2:
+                self.en_passant_possible = ()
 
     '''
     Wszystkie ruchy, które mogą dać szacha
@@ -91,6 +116,15 @@ class GameState():
                 self.get_king_moves(king_row, king_column, moves)
         else: #nie ma szacha, wszystkie legalne ruchy dozwolone
             moves = self.get_all_possible_moves()
+
+        if len(moves) == 0:
+            if self.in_check:
+                self.check_mate = True
+            else:
+                self.stale_mate = True
+        else:
+            self.check_mate = False
+            self.stale_mate = False
         return moves
 
                     
@@ -117,7 +151,7 @@ class GameState():
             for i in range(1, 8):
                 end_row = start_row + d[0] * i
                 end_column = start_column + d[1] * i
-                if 0 <= end_row <8 and 0 <= end_column < 8:
+                if 0 <= end_row < 8 and 0 <= end_column < 8:
                     stop_square = self.board[end_row][end_column] #figura na którą napotykamy sprawdzając kierunki wychodzące od króla
                     if stop_square[0] == ally_color and stop_square[1] != "K":
                         if possible_pin == (): #pierwsza własna figura- może być związana
@@ -147,18 +181,18 @@ class GameState():
                             break 
                 else: #poza szachownicą
                     break
-            #Obsługa przypadku gdy figurą dająca szacha jest skoczek
-            knight_moves = ((-2, -1), (-2, 1), (-1, -2), (-1, 2), (1, -2), (1, 2), (2, -1), (2, 1))
-            for m in knight_moves:
-                end_row = start_row + m[0]
-                end_column = start_column + m[1]
-                if 0 <= end_row < 8 and 0 <= end_column < 8:
-                    stop_square = self.board[end_row][end_column]
-                    if stop_square[0] == enemy_color and stop_square[1] == "N": #skoczek przeciwnika atakuje króla gracza 
-                        in_check = True
-                        checks.append(end_row, end_column, m[0], m[1])
-                else: #poza szachownicą
-                    break
+        #Obsługa przypadku gdy figurą dająca szacha jest skoczek
+        knight_moves = ((-2, -1), (-2, 1), (-1, -2), (-1, 2), (1, -2), (1, 2), (2, -1), (2, 1))
+        for m in knight_moves:
+            end_row = start_row + m[0]
+            end_column = start_column + m[1]
+            if 0 <= end_row < 8 and 0 <= end_column < 8:
+                stop_square = self.board[end_row][end_column]
+                if stop_square[0] == enemy_color and stop_square[1] == "N": #skoczek przeciwnika atakuje króla gracza 
+                    in_check = True
+                    checks.append(end_row, end_column, m[0], m[1])
+            else: #poza szachownicą
+                break
         return in_check, pins, checks
 
 
@@ -217,41 +251,44 @@ class GameState():
                 self.pins.remove(self.pins[i])
                 break
         
+        if self.whiteToMove:
+            move_amount = -1
+            start_row = 6
+            back_row = 0
+            enemy_color = 'b'
+        else: 
+            move_amount = 1
+            start_row = 1
+            back_row = 7
+            enemy_color = 'w'
+        pawn_promotion = False
+
+        if self.board[row+move_amount][column] == "--": #ruch o 1 pole
+            if not piece_pinned or pin_direction == (move_amount, 0):
+                if row + move_amount == back_row: #jeśli pion dojdzie do ostatniej linii, następuje promocja piona
+                    pawn_promotion = True
+                moves.append(Move((row, column), (row + move_amount, column), self.board, pawn_promotion = pawn_promotion))
+                if row == start_row and self.board[row + 2*move_amount][column] == "--": #ruch o 2 pola
+                    moves.append(Move((row, column), (row + 2*move_amount, column), self.board))
+        if column-1 >= 0: #bicie w lewo
+            if not piece_pinned or pin_direction == (move_amount, -1):
+                if self.board[row + move_amount][column - 1][0] == enemy_color:
+                    if row + move_amount == back_row: #jeśli pion dojdzie do ostatniej linii następuje promocja piona
+                        pawn_promotion = True
+                        print("test")
+                    moves.append(Move((row, column), (row + move_amount, column - 1), self.board, pawn_promotion = pawn_promotion))
+                if (row + move_amount, column - 1) == self.en_passant_possible:
+                    moves.append(Move((row, column), (row + move_amount, column - 1), self.board, en_passant= True))
+        if column + 1 <= 7: #bicie w prawo
+            if not piece_pinned or pin_direction == (move_amount, 1):
+                if self.board[row + move_amount][column + 1][0] == enemy_color:
+                    if row + move_amount == back_row: #jeśli pion dojdzie do ostatniej linii następuje promocja piona
+                        pawn_promotion = True
+                    moves.append(Move((row, column), (row + move_amount, column + 1), self.board, pawn_promotion = pawn_promotion))
+                if (row + move_amount, column + 1) == self.en_passant_possible:
+                    moves.append(Move((row, column), (row + move_amount, column + 1), self.board, en_passant= True))
+
         
-        if self.whiteToMove: #zasady ruchu dla białych pionków
-            if self.board[row-1][column] == "--":
-                if not piece_pinned or pin_direction == (-1, 0): #ruch o jedno pole do przodu
-                    moves.append(Move((row, column), (row-1, column), self.board))
-                    if row == 6 and self.board[row-2][column] == "--": #ruch o dwa pola do przodu, z pozycji startowej
-                        moves.append(Move((row, column), (row-2, column), self.board))
-
-            #bicia
-            if column - 1 >= 0: #bicie białym pionkiem w lewo
-                if self.board[row - 1][column - 1][0] == 'b':  #sprawdzenie czy na polu do bicia stoi czarna figura
-                    if not piece_pinned or pin_direction == (-1, -1):
-                        moves.append(Move((row, column),(row-1, column-1), self.board))
-            if column + 1 <= 7: #bicie białym pionkiem w prawo
-                if self.board[row -1][column + 1][0] == 'b': #sprawdzenie czy na polu do bicia stoi czarna figura
-                    if not piece_pinned or pin_direction == (-1, 1):
-                        moves.append(Move((row, column), (row-1, column+1), self.board))
-
-        else: #zasady ruchu dla czarnych pionków
-            if self.board[row+1][column] == "--": #ruch białego pionka o jedno pole do przodu (w dół szachownicy)
-                if not piece_pinned or pin_direction == (1, 0):
-                    moves.append(Move((row, column), (row+1, column), self.board))
-                    if row == 1 and self.board[row+2][column] == "--": #ruch czarnego pionka o dwa pola do przodu (w dół szachownicy), z pozycji startowej
-                        moves.append(Move((row, column), (row+2, column), self.board))
-            
-            #bicia
-            if column - 1 >= 0: #bicie czarnym pionkiem w lewo
-                if self.board[row+1][column-1][0] == 'w': #sprawdzenie czy na polu do bicia stoi biała figura
-                     if not piece_pinned or pin_direction == (1, -1):
-                        moves.append(Move((row, column), (row+1, column-1), self.board))
-            if column + 1 <= 7: #bicie czarnym pionkiem w prawo
-                if self.board[row+1][column+1][0] == 'w': #sprawdzenie czy na polu do bicia stoi biała figura
-                    if not piece_pinned or pin_direction == (1, 1):
-                        moves.append(Move((row, column), (row+1, column+1), self.board))
-
 
     '''
     Pobiera wszystkie ruchy wież stojących na row, column i dodaje te ruchy do listy moves
@@ -275,13 +312,13 @@ class GameState():
                 if 0 <= end_row < 8 and 0 <= end_column < 8: #zapewnienie, że znajdujemy się na planszy
                     if not piece_pinned or pin_direction == d or pin_direction == (-d[0], -d[1]): #ostatni warunek pozwala poruszać się wzdłuż wiązania w przeciwnym kierunku
                         stop_square = self.board[end_row][end_column]
-                    if stop_square == "--": #puste pole
-                        moves.append(Move((row, column), (end_row, end_column), self.board))
-                    elif stop_square[0] == enemy_color: #figura przeciwnika, sprawdzanie po pierwszej literze: [0]
-                        moves.append(Move((row, column), (end_row, end_column), self.board))
-                        break
-                    else: #własna figura
-                        break
+                        if stop_square == "--": #puste pole
+                            moves.append(Move((row, column), (end_row, end_column), self.board))
+                        elif stop_square[0] == enemy_color: #figura przeciwnika, sprawdzanie po pierwszej literze: [0]
+                            moves.append(Move((row, column), (end_row, end_column), self.board))
+                            break
+                        else: #własna figura
+                            break
                 else: #sytuacja, gdy pola są poza planszą
                     break
 
@@ -383,13 +420,17 @@ class Move():
 
 
 
-    def __init__(self, startSq, endSq, board):
+    def __init__(self, startSq, endSq, board, en_passant = False, pawn_promotion = False):
         self.start_row = startSq[0]
         self.start_column = startSq[1]
         self.end_row = endSq[0]
         self.end_column = endSq[1]
         self.piece_moved = board[self.start_row][self.start_column]
         self.piece_captured = board[self.end_row][self.end_column]
+        self.en_passant = en_passant
+        self.pawn_promotion = pawn_promotion
+        if en_passant:
+            self.piece_captured = 'bp' if self.piece_moved == 'wp' else 'wp' #bicie w przelocie bije pionka o przeciwnym kolorze
         self.move_id = self.start_row * 1000 + self.start_column * 100 + self.end_row * 10 + self.end_column #unikalne ID ruchu
         
 

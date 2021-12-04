@@ -54,13 +54,15 @@ def main():
                     player_clicks.append(sq_selected) #dodanie pierwszego lub drugiego kliknięcia
                 if (len(player_clicks)) == 2: #sytuacja po drugim kliknięciu
                     move = Engine.Move(player_clicks[0], player_clicks[1], gs.board)
-                    if move in valid_moves:
-                        gs.make_move(move)
-                        move_made = True
-                        sq_selected = () #zresetowanie kliknięc gracza
-                        player_clicks = []
-                        print(move.get_chess_notation())
-                    else:
+                    for i in range(len(valid_moves)):
+                        if move == valid_moves[i]:
+                            gs.make_move(valid_moves[i]) #valid_moves[i] to legalny ruch wygenerowany przez silnik, w przeciwieństwie do move, 
+                                                         #które jest wygenerowane przez kliknięcie myszy przez użytkownika. Ma to znaczenie w przypadku ruchów posiadających flagę tj. bicie w przelocie, promocja piona
+                            move_made = True
+                            sq_selected = () #zresetowanie kliknięc gracza
+                            player_clicks = []
+                            print(move.get_chess_notation())
+                    if not move_made:
                         player_clicks = [sq_selected]
             #obsługa klawiszy klawiaturowych
             elif e.type == p.KEYDOWN:
