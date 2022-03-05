@@ -71,6 +71,7 @@ def main():
                     move_made = True
 
         if move_made:
+            animate_move(gs.moveLog[-1], screen, gs.board, clock)
             valid_moves = gs.get_valid_moves()
             move_made = False
 
@@ -119,7 +120,8 @@ def draw_game_state(screen, gs, valid_moves, sq_selected):
 rysuje pola na szachownicy. Pole w lewym górnym rogu jest jasnego koloru
 """
 def drawBoard(screen):
-    colors = ["white", "grey"]
+    global colors
+    colors = ["white", "gray"]
     for r in range(DIMENSION):
         for c in range(DIMENSION):
             color = colors[((r+c)%2)] 
@@ -140,7 +142,27 @@ def drawPieces(screen, board):
 Funkcja odpowiedzialna za animację ruchu
 """
 def animate_move(move, screen, board, clock):
-    pass
+    global colors
+    dR = move.end_row - move.start_row
+    dC = move.end_column - move.start_column
+    frames_per_square = 2 #liczba klatek odpowiadająca ruchowi o jedno pole
+    frame_count = (abs(dR) + abs(dC)) * frames_per_square
+    for frame in range(frame_count + 1):
+        row, column = (move.start_row + dR*frame/frame_count, move.start_column + dC*frame/frame_count)
+        drawBoard(screen)
+        drawPieces(screen, board)
+        #wykasowanie poruszanej bierki z jej końcowego pola
+        color = colors[(move.end_row + move.end_column)%2]
+        end_square = p.Rect(move.end_column*SQ_SIZE, move.end_row*SQ_SIZE, SQ_SIZE, SQ_SIZE)
+        p.draw.rect(screen, color, end_square)
+        #ponowne narysowanie zbitej figury w przypadku, gdy ruch był biciem
+        if move.piece_captured != "--":
+            screen.blit(IMAGES[move.piece_captured], end_square)
+        #narysowanie poruszającej się figury
+        screen.blit(IMAGES[move.piece_moved], p.Rect(column * SQ_SIZE, row * SQ_SIZE, SQ_SIZE, SQ_SIZE))
+        p.display.flip()
+        clock.tick(60)
+
 
 if __name__ == "__main__":
     main()
