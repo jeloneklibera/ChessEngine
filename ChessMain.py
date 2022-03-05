@@ -74,17 +74,44 @@ def main():
             valid_moves = gs.get_valid_moves()
             move_made = False
 
-        draw_game_state(screen, gs)
+        draw_game_state(screen, gs, valid_moves, sq_selected)
         clock.tick(MAX_FPS)
         p.display.flip()
+
+"""
+Funkcja odpowiedzialna za podświetlenie wybranej bierki i pól na które dana bierka może przejść w danym ruchu
+"""
+def highlight_squares(screen, gs, valid_moves, sq_selected):
+    if sq_selected != ():
+        row, col = sq_selected
+        if gs.board[row][col][0] == ('w' if gs.whiteToMove else 'b'): #zaznaczone pole należy do gracza wykonującego ruch w danej turze
+            #podświetlenie zaznaczonego pola
+            s = p.Surface((SQ_SIZE, SQ_SIZE))
+            s.set_alpha(100) #poziom przezroczystości - wartość 0 oznacza pełną przezroczystość, 255 oznacza brak pezroczystości
+            s.fill(p.Color('yellow'))
+            screen.blit(s, (col*SQ_SIZE, row*SQ_SIZE))
+            #podświetlenie pól na które dana bierka może przejść w danym ruchu
+            s.fill(p.Color('green'))
+            for move in valid_moves:
+                if move.start_row == row and move.start_column == col:
+                    screen.blit(s, (move.end_column * SQ_SIZE, move.end_row * SQ_SIZE))
+            s.fill(p.Color('red'))
+            s.set_alpha(150)
+            for move in valid_moves:
+                if move.start_row == row and move.start_column == col:
+                    if gs.board[move.end_row][move.end_column][0] == ('b' if gs.whiteToMove else 'w'):
+                        screen.blit(s, (move.end_column * SQ_SIZE, move.end_row *SQ_SIZE))
+
+
+
 
 
 """
 Odpowiedzialna za grafikę powiązaną z danym stanem gry 
 """
-def draw_game_state(screen, gs):
+def draw_game_state(screen, gs, valid_moves, sq_selected):
     drawBoard(screen) #rysuje pola na szachownicy
-    #TODO: Podkreślanie figur, sugestie ruchów
+    highlight_squares(screen, gs, valid_moves, sq_selected)
     drawPieces(screen, gs.board) #rysuje figury szachowe na polach szachownicy 
 
 
@@ -92,7 +119,7 @@ def draw_game_state(screen, gs):
 rysuje pola na szachownicy. Pole w lewym górnym rogu jest jasnego koloru
 """
 def drawBoard(screen):
-    colors = ["#eae2b7", "#277da1"]
+    colors = ["white", "grey"]
     for r in range(DIMENSION):
         for c in range(DIMENSION):
             color = colors[((r+c)%2)] 
@@ -109,7 +136,11 @@ def drawPieces(screen, board):
                 screen.blit(IMAGES[piece], p.Rect(c*SQ_SIZE, r*SQ_SIZE, SQ_SIZE, SQ_SIZE))
 
 
-
+"""
+Funkcja odpowiedzialna za animację ruchu
+"""
+def animate_move(move, screen, board, clock):
+    pass
 
 if __name__ == "__main__":
     main()
