@@ -7,7 +7,7 @@ import Engine
 WIDTH = HEIGHT = 512
 DIMENSION = 8 #Wymiary szachownicy to 8x8 pól
 SQ_SIZE = WIDTH // DIMENSION #Rozmiar pojedynczego pola: 512/8=64
-MAX_FPS = 30 #Parametr animacji, maksymalna liczba klatek na sekundę
+MAX_FPS = 60 #Parametr animacji, maksymalna liczba klatek na sekundę
 IMAGES = {}
 
 """
@@ -32,7 +32,7 @@ def main():
     gs = Engine.GameState() #inicjalizacja obiektu Stanu Gry
     valid_moves = gs.get_valid_moves()
     move_made = False #flaga sprawdzająca czy ruch został wykonany
-
+    animate = False #flaga mówiąca kiedy ruch powinien być animowany
     load_images()
     running = True
     sq_selected = () #początkowo żadne pole nie jest zaznaczone, śledzi ostatnie kliknięcie użytkownika (krotka: (row, col))
@@ -59,6 +59,7 @@ def main():
                             gs.make_move(valid_moves[i]) #valid_moves[i] to legalny ruch wygenerowany przez silnik, w przeciwieństwie do move, 
                                                          #które jest wygenerowane przez kliknięcie myszy przez użytkownika. Ma to znaczenie w przypadku ruchów posiadających flagę tj. bicie w przelocie, promocja piona
                             move_made = True
+                            animate = True
                             sq_selected = () #zresetowanie kliknięc gracza
                             player_clicks = []
                             print(move.get_chess_notation())
@@ -69,9 +70,11 @@ def main():
                 if e.key == p.K_z: #cofnij ruch po kliknięci 'z' na klawiaturze
                     gs.undo_move() 
                     move_made = True
+                    animate = False #przy cofaniu wykonanego ruchu animacja jest niepotrzebna
 
         if move_made:
-            animate_move(gs.moveLog[-1], screen, gs.board, clock)
+            if animate:
+                animate_move(gs.moveLog[-1], screen, gs.board, clock)
             valid_moves = gs.get_valid_moves()
             move_made = False
 
@@ -145,7 +148,7 @@ def animate_move(move, screen, board, clock):
     global colors
     dR = move.end_row - move.start_row
     dC = move.end_column - move.start_column
-    frames_per_square = 2 #liczba klatek odpowiadająca ruchowi o jedno pole
+    frames_per_square = 5 #liczba klatek odpowiadająca ruchowi o jedno pole
     frame_count = (abs(dR) + abs(dC)) * frames_per_square
     for frame in range(frame_count + 1):
         row, column = (move.start_row + dR*frame/frame_count, move.start_column + dC*frame/frame_count)
