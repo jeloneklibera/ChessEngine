@@ -71,12 +71,20 @@ def main():
                     gs.undo_move() 
                     move_made = True
                     animate = False #przy cofaniu wykonanego ruchu animacja jest niepotrzebna
+                if e.key == p.K_r: #reset całej gry
+                    gs = Engine.GameState()
+                    valid_moves = gs.get_valid_moves()
+                    sq_selected = ()
+                    player_clicks = []
+                    move_made = False
+                    animate = False
 
         if move_made:
             if animate:
                 animate_move(gs.moveLog[-1], screen, gs.board, clock)
             valid_moves = gs.get_valid_moves()
             move_made = False
+            animate = False
 
         draw_game_state(screen, gs, valid_moves, sq_selected)
         clock.tick(MAX_FPS)
