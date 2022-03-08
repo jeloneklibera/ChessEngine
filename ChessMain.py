@@ -37,40 +37,43 @@ def main():
     running = True
     sq_selected = () #początkowo żadne pole nie jest zaznaczone, śledzi ostatnie kliknięcie użytkownika (krotka: (row, col))
     player_clicks = [] #śledzi kliknięcia użytkownika (dwie krotki: [(6, 4), (4, 4)] - odpowiada ruchowi pionka o dwa pola)
+    game_over = False
     while running:
         for e in p.event.get():
             if e.type == p.QUIT:
                 running = False
             #obsługa kliknięć myszy
             elif e.type == p.MOUSEBUTTONDOWN:
-                location = p.mouse.get_pos() #(x,y) pozycja kursora
-                col = location[0] // SQ_SIZE
-                row = location[1] // SQ_SIZE
-                if sq_selected == (row, col): #użytkownik kliknął na to samo pole dwukrotnie, odznaczenie zaznaczenia
-                    sq_selected = () #odznaczenie
-                    player_clicks = [] 
-                else: 
-                    sq_selected = (row, col)
-                    player_clicks.append(sq_selected) #dodanie pierwszego lub drugiego kliknięcia
-                if (len(player_clicks)) == 2: #sytuacja po drugim kliknięciu
-                    move = Engine.Move(player_clicks[0], player_clicks[1], gs.board)
-                    for i in range(len(valid_moves)):
-                        if move == valid_moves[i]:
-                            gs.make_move(valid_moves[i]) #valid_moves[i] to legalny ruch wygenerowany przez silnik, w przeciwieństwie do move, 
-                                                         #które jest wygenerowane przez kliknięcie myszy przez użytkownika. Ma to znaczenie w przypadku ruchów posiadających flagę tj. bicie w przelocie, promocja piona
-                            move_made = True
-                            animate = True
-                            sq_selected = () #zresetowanie kliknięc gracza
-                            player_clicks = []
-                            print(move.get_chess_notation())
-                    if not move_made:
-                        player_clicks = [sq_selected]
+                if not game_over:
+                    location = p.mouse.get_pos() #(x,y) pozycja kursora
+                    col = location[0] // SQ_SIZE
+                    row = location[1] // SQ_SIZE
+                    if sq_selected == (row, col): #użytkownik kliknął na to samo pole dwukrotnie, odznaczenie zaznaczenia
+                        sq_selected = () #odznaczenie
+                        player_clicks = [] 
+                    else: 
+                        sq_selected = (row, col)
+                        player_clicks.append(sq_selected) #dodanie pierwszego lub drugiego kliknięcia
+                    if (len(player_clicks)) == 2: #sytuacja po drugim kliknięciu
+                        move = Engine.Move(player_clicks[0], player_clicks[1], gs.board)
+                        for i in range(len(valid_moves)):
+                            if move == valid_moves[i]:
+                                gs.make_move(valid_moves[i]) #valid_moves[i] to legalny ruch wygenerowany przez silnik, w przeciwieństwie do move, 
+                                                            #które jest wygenerowane przez kliknięcie myszy przez użytkownika. Ma to znaczenie w przypadku ruchów posiadających flagę tj. bicie w przelocie, promocja piona
+                                move_made = True
+                                animate = True
+                                sq_selected = () #zresetowanie kliknięc gracza
+                                player_clicks = []
+                                print(move.get_chess_notation())
+                        if not move_made:
+                            player_clicks = [sq_selected]
             #obsługa klawiszy klawiaturowych
             elif e.type == p.KEYDOWN:
                 if e.key == p.K_z: #cofnij ruch po kliknięci 'z' na klawiaturze
                     gs.undo_move() 
                     move_made = True
                     animate = False #przy cofaniu wykonanego ruchu animacja jest niepotrzebna
+                    game_over = False
                 if e.key == p.K_r: #reset całej gry
                     gs = Engine.GameState()
                     valid_moves = gs.get_valid_moves()
@@ -78,6 +81,7 @@ def main():
                     player_clicks = []
                     move_made = False
                     animate = False
+                    game_over = False
 
         if move_made:
             if animate:
@@ -87,6 +91,16 @@ def main():
             animate = False
 
         draw_game_state(screen, gs, valid_moves, sq_selected)
+        if gs.check_mate:
+            game_over = True
+            if gs.whiteToMove:
+                draw_text(screen, "BLACK WON!!!")
+            else:
+                draw_text(screen, "WHITE WON!!!")
+        elif gs.stale_mate:
+            game_over = True
+            draw_text(screen, "Koniec gry - pat")
+
         clock.tick(MAX_FPS)
         p.display.flip()
 
@@ -156,7 +170,7 @@ def animate_move(move, screen, board, clock):
     global colors
     dR = move.end_row - move.start_row
     dC = move.end_column - move.start_column
-    frames_per_square = 5 #liczba klatek odpowiadająca ruchowi o jedno pole
+    frames_per_square = 3 #liczba klatek odpowiadająca ruchowi o jedno pole
     frame_count = (abs(dR) + abs(dC)) * frames_per_square
     for frame in range(frame_count + 1):
         row, column = (move.start_row + dR*frame/frame_count, move.start_column + dC*frame/frame_count)
@@ -173,6 +187,12 @@ def animate_move(move, screen, board, clock):
         screen.blit(IMAGES[move.piece_moved], p.Rect(column * SQ_SIZE, row * SQ_SIZE, SQ_SIZE, SQ_SIZE))
         p.display.flip()
         clock.tick(60)
+
+def draw_text(screen, text):
+    font = p.font.SysFont("Helvitca", 32, True, False)
+    text_object = font.render(text, 0, p.Color("blue"))
+    text_location = p.Rect(0, 0, WIDTH, HEIGHT).move(WIDTH/2 - text_object.get_width()/2, HEIGHT/2 - text_object.get_height()/2) #wyśrodkowanie napisu na ekranie
+    screen.blit(text_object, text_location)
 
 
 if __name__ == "__main__":
