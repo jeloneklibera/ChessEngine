@@ -2,6 +2,7 @@
 
 import pygame as p
 import Engine
+import ChessAI
 
 
 WIDTH = HEIGHT = 512
@@ -38,13 +39,16 @@ def main():
     sq_selected = () #początkowo żadne pole nie jest zaznaczone, śledzi ostatnie kliknięcie użytkownika (krotka: (row, col))
     player_clicks = [] #śledzi kliknięcia użytkownika (dwie krotki: [(6, 4), (4, 4)] - odpowiada ruchowi pionka o dwa pola)
     game_over = False
+    player_one = False #Kiedy człowiek gra białymi - True, gdy AI gra białymi - False
+    player_two = False #Kiedy człowiek gra czarnymi - True, gdy AI gra czarnymi - False
     while running:
+        is_human_turn = (gs.whiteToMove and player_one) or (not gs.whiteToMove and player_two) #(tura białych i człowiek gra białymi) lub (tura czarnych i człowiek gra czarnymi)
         for e in p.event.get():
             if e.type == p.QUIT:
                 running = False
             #obsługa kliknięć myszy
             elif e.type == p.MOUSEBUTTONDOWN:
-                if not game_over:
+                if not game_over and is_human_turn:
                     location = p.mouse.get_pos() #(x,y) pozycja kursora
                     col = location[0] // SQ_SIZE
                     row = location[1] // SQ_SIZE
@@ -82,6 +86,15 @@ def main():
                     move_made = False
                     animate = False
                     game_over = False
+
+
+        #Ruchy AI
+        if not game_over and not is_human_turn:
+            AI_move = ChessAI.find_random_move(valid_moves)
+            gs.make_move(AI_move)
+            move_made = True
+            animate = True
+
 
         if move_made:
             if animate:
@@ -190,10 +203,11 @@ def animate_move(move, screen, board, clock):
 
 def draw_text(screen, text):
     font = p.font.SysFont("Helvitca", 32, True, False)
-    text_object = font.render(text, 0, p.Color("blue"))
+    text_object = font.render(text, 0, p.Color("green"))
     text_location = p.Rect(0, 0, WIDTH, HEIGHT).move(WIDTH/2 - text_object.get_width()/2, HEIGHT/2 - text_object.get_height()/2) #wyśrodkowanie napisu na ekranie
     screen.blit(text_object, text_location)
-
+    text_object = font.render(text, 0, p.Color("blue"))
+    screen.blit(text_object, text_location.move(2, 2))
 
 if __name__ == "__main__":
     main()

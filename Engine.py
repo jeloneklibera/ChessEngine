@@ -248,7 +248,7 @@ class GameState():
                 stop_square = self.board[end_row][end_column]
                 if stop_square[0] == enemy_color and stop_square[1] == "N": #skoczek przeciwnika atakuje króla gracza 
                     in_check = True
-                    checks.append(end_row, end_column, m[0], m[1])
+                    checks.append((end_row, end_column, m[0], m[1]))
             else: #poza szachownicą
                 break
         return in_check, pins, checks
@@ -333,7 +333,6 @@ class GameState():
                 if self.board[row + move_amount][column - 1][0] == enemy_color:
                     if row + move_amount == back_row: #jeśli pion dojdzie do ostatniej linii następuje promocja piona
                         pawn_promotion = True
-                        print("test")
                     moves.append(Move((row, column), (row + move_amount, column - 1), self.board, pawn_promotion = pawn_promotion))
                 if (row + move_amount, column - 1) == self.en_passant_possible:
                     moves.append(Move((row, column), (row + move_amount, column - 1), self.board, en_passant= True))
