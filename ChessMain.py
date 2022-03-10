@@ -90,7 +90,9 @@ def main():
 
         #Ruchy AI
         if not game_over and not is_human_turn:
-            AI_move = ChessAI.find_random_move(valid_moves)
+            AI_move = ChessAI.find_best_move(gs, valid_moves)
+            if AI_move is None:
+                AI_move = ChessAI.find_random_move(valid_moves)
             gs.make_move(AI_move)
             move_made = True
             animate = True
