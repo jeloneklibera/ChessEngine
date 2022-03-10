@@ -24,7 +24,7 @@ class GameState():
         self.moveLog = []
         self.white_king_location = (7, 4)
         self.black_king_location = (0, 4)
-        self.in_check = False
+        self.is_in_check = False
         self.pins = []
         self.checks = []
         self.check_mate = False
@@ -132,7 +132,7 @@ class GameState():
     '''
     def get_valid_moves(self):
         moves = []
-        self.in_check, self.pins, self.checks = self.check_for_pins_and_checks()
+        self.is_in_check, self.pins, self.checks = self.check_for_pins_and_checks()
         temp_castle_rights = CastleRights(self.current_castling_rights.wks, self.current_castling_rights.bks, self.current_castling_rights.wqs, self.current_castling_rights.bqs)
         if self.whiteToMove:
             king_row = self.white_king_location[0]
@@ -140,7 +140,7 @@ class GameState():
         else:
             king_row = self.black_king_location[0]
             king_column = self.black_king_location[1]
-        if self.in_check:
+        if self.is_in_check:
             if len(self.checks) == 1: #tylko jedna figura szachuje króla, zablokuj szacha lub porusz się królem
                 moves = self.get_all_possible_moves()
                 #Aby zablokować szacha powinno się mieć jakąś figurę pomiędzy przeciwną figurą dającą szacha a królem
@@ -170,7 +170,7 @@ class GameState():
              
 
         if len(moves) == 0:
-            if self.in_check:
+            if self.is_in_check:
                 self.check_mate = True
             else:
                 self.stale_mate = True
@@ -190,7 +190,7 @@ class GameState():
     def check_for_pins_and_checks(self):
         pins = [] #pola na których znajduje się włana związana figura oraz kierunek powodujący związanie
         checks = [] #pola które są szachowane przez przeciwnika
-        in_check = False
+        is_in_check = False
         if self.whiteToMove:
             enemy_color = "b"
             ally_color = "w"
@@ -229,7 +229,7 @@ class GameState():
                                 (i == 1 and type_of_piece == "p" and ((enemy_color == "w" and 6 <= j <= 7) or (enemy_color == "b" and 4 <= j <= 5))) or \
                                 (type_of_piece == "Q") or (i == 1 and type_of_piece == "K"):
                             if possible_pin == (): #brak blokującej figury, zatem pozycja szachowa
-                                in_check = True
+                                is_in_check = True
                                 checks.append((end_row, end_column, d[0], d[1]))
                                 break
                             else: #blokująca figura, zatem związanie
@@ -247,11 +247,9 @@ class GameState():
             if 0 <= end_row < 8 and 0 <= end_column < 8:
                 stop_square = self.board[end_row][end_column]
                 if stop_square[0] == enemy_color and stop_square[1] == "N": #skoczek przeciwnika atakuje króla gracza 
-                    in_check = True
+                    is_in_check = True
                     checks.append((end_row, end_column, m[0], m[1]))
-            else: #poza szachownicą
-                break
-        return in_check, pins, checks
+        return is_in_check, pins, checks
 
 
 
@@ -456,8 +454,8 @@ class GameState():
                        self.white_king_location = (end_row, end_column)
                     else: 
                         self.black_king_location = (end_row, end_column)
-                    in_check, pins, checks = self.check_for_pins_and_checks()
-                    if not in_check:
+                    is_in_check, pins, checks = self.check_for_pins_and_checks()
+                    if not is_in_check:
                         moves.append(Move((row, column), (end_row, end_column), self.board))
                     #postawienie króla z powrotem na jego oryginalnej pozycji
                     if own_color == "w":
