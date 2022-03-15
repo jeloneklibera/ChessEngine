@@ -102,6 +102,11 @@ class GameState():
                 else: #roszada na skrzydle hetmańskim
                     self.board[move.end_row][move.end_column-2] = self.board[move.end_row][move.end_column+1] #wieża z pozycji po roszadzie na skrzydle hetmańskim wraca na pierwotne pole w rogu szachownicy
                     self.board[move.end_row][move.end_column+1] = "--" #wyczyszczenie pola na którym stała wieża po roszadzie na skrzydle hetmańskim
+   
+            self.check_mate = False
+            self.stale_mate = False
+   
+   
     """
     Aktualizuje zasady dotyczące roszady dostając na wejściu dany ruch
     """
