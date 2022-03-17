@@ -55,7 +55,7 @@ class GameState():
             self.board[move.start_row][move.end_column] = "--"
         #promocja pionów
         if move.pawn_promotion:
-            promoted_piece = input("Promote to Q, R, B or N:") #TO-DO do wykorzystania przy rozwijaniu UI
+            promoted_piece = "Q" #TO-DO do wykorzystania przy rozwijaniu UI
             self.board[move.end_row][move.end_column] = move.piece_moved[0] + promoted_piece
         #roszada
         if move.is_castle_move:
@@ -128,6 +128,20 @@ class GameState():
                 if move.start_column == 0: #wieża na czarnym skrzydle hetmańskim
                     self.current_castling_rights.bqs = False
                 elif move.start_column == 7: #wieża na czarnym skrzydle królewskim
+                    self.current_castling_rights.bks = False
+
+        #gdy wieża jest zbita
+        if move.piece_captured == "wR":
+            if move.end_row == 7:
+                if move.end_column == 0:
+                    self.current_castling_rights.wqs = False
+                elif move.end_column == 7:
+                    self.current_castling_rights.wks = False
+        elif move.piece_captured == "bR":
+            if move.end_row == 0:
+                if move.end_column == 0:
+                    self.current_castling_rights.bqs = False
+                elif move.end_column == 7:
                     self.current_castling_rights.bks = False
 
 
@@ -487,7 +501,7 @@ class GameState():
                 moves.append(Move((row, column), (row, column+2), self.board, is_castle_move=True))
 
     def get_queenside_castle_moves(self, row, column, moves):
-        if self.board[row][column-1] == "--" and self.board[row][column-2] == "--" and self.board[row][column-3]: #na skrzydle hemtańskim
+        if self.board[row][column-1] == "--" and self.board[row][column-2] == "--" and self.board[row][column-3] == "--": #na skrzydle hemtańskim
             if not self.square_under_attack(row, column-1) and not self.square_under_attack(row, column-2): #brak sprawdzenia column-3, ponieważ król i tak nie trafia na to pole
                 moves.append(Move((row, column), (row, column-2), self.board, is_castle_move=True))
 

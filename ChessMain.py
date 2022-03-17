@@ -39,7 +39,7 @@ def main():
     sq_selected = () #początkowo żadne pole nie jest zaznaczone, śledzi ostatnie kliknięcie użytkownika (krotka: (row, col))
     player_clicks = [] #śledzi kliknięcia użytkownika (dwie krotki: [(6, 4), (4, 4)] - odpowiada ruchowi pionka o dwa pola)
     game_over = False
-    player_one = False #Kiedy człowiek gra białymi - True, gdy AI gra białymi - False
+    player_one = True #Kiedy człowiek gra białymi - True, gdy AI gra białymi - False
     player_two = False #Kiedy człowiek gra czarnymi - True, gdy AI gra czarnymi - False
     while running:
         is_human_turn = (gs.whiteToMove and player_one) or (not gs.whiteToMove and player_two) #(tura białych i człowiek gra białymi) lub (tura czarnych i człowiek gra czarnymi)
@@ -90,7 +90,7 @@ def main():
 
         #Ruchy AI
         if not game_over and not is_human_turn:
-            AI_move = ChessAI.find_best_move_negamax_recursion_first_call(gs, valid_moves)
+            AI_move = ChessAI.find_best_move_negamax_alphabeta_recursion_first_call(gs, valid_moves)
             if AI_move is None:
                 AI_move = ChessAI.find_random_move(valid_moves)
             gs.make_move(AI_move)
