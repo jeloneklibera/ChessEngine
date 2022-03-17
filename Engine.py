@@ -30,6 +30,7 @@ class GameState():
         self.check_mate = False
         self.stale_mate = False
         self.en_passant_possible = () #współrzędne pola, na którym jest możliwe bicie w przelocie
+        self.en_passant_possible_log = [self.en_passant_possible]
         self.current_castling_rights = CastleRights(True, True, True, True)
         self.castle_rights_log = [CastleRights(self.current_castling_rights.wks, self.current_castling_rights.bks,
                                                  self.current_castling_rights.wqs, self.current_castling_rights.bks)]
@@ -65,6 +66,9 @@ class GameState():
             else: #roszada na skrzydle hetmańskim
                 self.board[move.end_row][move.end_column+1] = self.board[move.end_row][move.end_column-2] #jedno pole po prawej od króla po roszadzie = wieża (która znajdowała się dwa pola po lewej od pola na którym wylądował króla po roszadzie)
                 self.board[move.end_row][move.end_column-2] = "--"
+
+        self.en_passant_possible_log.append(self.en_passant_possible)
+
         #aktualizacja praw do roszady - w przypadk ruchu którejś z wież lub króli
         self.update_castle_rights(move)
         self.castle_rights_log.append(CastleRights(self.current_castling_rights.wks, self.current_castling_rights.bks,
@@ -87,10 +91,10 @@ class GameState():
             if move.en_passant:
                 self.board[move.end_row][move.end_column] = "--" #Usuwa pionka, który został dodany na niewłaściwym polu
                 self.board[move.start_row][move.end_column] = move.piece_captured #Ustawia z powrotem pionka na polu z którego nastąpiło bicie
-                self.en_passant_possible = (move.end_row, move.end_column) #Dzięki temu mozliwy jest ruch enpassant po cofnięciu ruchu
-            #Cofnięcie ruchu o dwa pola, oraz dodanie możliwości na ponowne bicie enpassant po cofnięciu
-            if move.piece_moved[1] == 'p' and abs(move.start_row - move.end_row) == 2:
-                self.en_passant_possible = ()
+               
+            self.en_passant_possible_log.pop()
+            self.en_passant_possible = self.en_passant_possible_log[-1]
+
             #Cofnięcie stanu praw do roszady
             self.castle_rights_log.pop() #skasowanie praw do roszady, które były następstwem ruchu, który cofamy
             self.current_castling_rights  = self.castle_rights_log[-1] #ustawienie aktualnych praw do roszady, jako ostatni element listy (z której usunęliśmy wyżej ostatni element)

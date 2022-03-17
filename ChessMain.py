@@ -198,6 +198,9 @@ def animate_move(move, screen, board, clock):
         p.draw.rect(screen, color, end_square)
         #ponowne narysowanie zbitej figury w przypadku, gdy ruch był biciem
         if move.piece_captured != "--":
+            if move.en_passant:
+                en_passant_row = move.end_row + 1 if move.piece_captured[0] == 'b' else move.end_row - 1
+                end_square = p.Rect(move.end_column*SQ_SIZE, en_passant_row*SQ_SIZE, SQ_SIZE, SQ_SIZE) 
             screen.blit(IMAGES[move.piece_captured], end_square)
         #narysowanie poruszającej się figury
         screen.blit(IMAGES[move.piece_moved], p.Rect(column * SQ_SIZE, row * SQ_SIZE, SQ_SIZE, SQ_SIZE))
