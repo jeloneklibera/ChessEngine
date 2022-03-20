@@ -5,9 +5,11 @@ import Engine
 import ChessAI
 
 
-WIDTH = HEIGHT = 512
+BOARD_WIDTH = BOARD_HEIGHT = 512
+MOVE_LOG_PANEL_WIDTH = 250
+MOVE_LOG_PANEL_HEIGHT = BOARD_HEIGHT
 DIMENSION = 8 #Wymiary szachownicy to 8x8 pól
-SQ_SIZE = WIDTH // DIMENSION #Rozmiar pojedynczego pola: 512/8=64
+SQ_SIZE = BOARD_WIDTH // DIMENSION #Rozmiar pojedynczego pola: 512/8=64
 MAX_FPS = 60 #Parametr animacji, maksymalna liczba klatek na sekundę
 IMAGES = {}
 
@@ -27,9 +29,10 @@ Główny sterownik kodu. Obsługuje komendy wejściowe użytkownika i interfejs 
 
 def main():
     p.init()
-    screen = p.display.set_mode((WIDTH, HEIGHT))
+    screen = p.display.set_mode((BOARD_WIDTH + MOVE_LOG_PANEL_WIDTH, BOARD_HEIGHT))
     clock = p.time.Clock()
     screen.fill(p.Color("white"))
+    move_log_font = p.font.SysFont("Arial", 16, False, False)
     gs = Engine.GameState() #inicjalizacja obiektu Stanu Gry
     valid_moves = gs.get_valid_moves()
     move_made = False #flaga sprawdzająca czy ruch został wykonany
@@ -40,7 +43,7 @@ def main():
     player_clicks = [] #śledzi kliknięcia użytkownika (dwie krotki: [(6, 4), (4, 4)] - odpowiada ruchowi pionka o dwa pola)
     game_over = False
     player_one = True #Kiedy człowiek gra białymi - True, gdy AI gra białymi - False
-    player_two = False #Kiedy człowiek gra czarnymi - True, gdy AI gra czarnymi - False
+    player_two = True #Kiedy człowiek gra czarnymi - True, gdy AI gra czarnymi - False
     while running:
         is_human_turn = (gs.whiteToMove and player_one) or (not gs.whiteToMove and player_two) #(tura białych i człowiek gra białymi) lub (tura czarnych i człowiek gra czarnymi)
         for e in p.event.get():
@@ -52,7 +55,7 @@ def main():
                     location = p.mouse.get_pos() #(x,y) pozycja kursora
                     col = location[0] // SQ_SIZE
                     row = location[1] // SQ_SIZE
-                    if sq_selected == (row, col): #użytkownik kliknął na to samo pole dwukrotnie, odznaczenie zaznaczenia
+                    if sq_selected == (row, col) or col >= 8: #użytkownik kliknął na to samo pole dwukrotnie lub na obszarze z logiem ruchów, odznaczenie zaznaczenia
                         sq_selected = () #odznaczenie
                         player_clicks = [] 
                     else: 
@@ -106,19 +109,37 @@ def main():
             move_made = False
             animate = False
 
-        draw_game_state(screen, gs, valid_moves, sq_selected)
-        if gs.check_mate:
-            game_over = True
-            if gs.whiteToMove:
-                draw_text(screen, "BLACK WON!!!")
-            else:
-                draw_text(screen, "WHITE WON!!!")
-        elif gs.stale_mate:
-            game_over = True
-            draw_text(screen, "Koniec gry - pat")
+        draw_game_state(screen, gs, valid_moves, sq_selected, move_log_font)
 
+        if gs.check_mate or gs.stale_mate:
+            game_over = True
+            text =  "Koniec gry - pat" if gs.stale_mate else ("BLACK WON!!!" if gs.whiteToMove else "WHITE WON!!!")
+            draw_end_game_text(screen, text) #wypisanie na ekranie koncowego rezultatu gry
         clock.tick(MAX_FPS)
         p.display.flip()
+
+
+
+"""
+Odpowiedzialna za grafikę powiązaną z danym stanem gry 
+"""
+def draw_game_state(screen, gs, valid_moves, sq_selected, move_log_font):
+    drawBoard(screen) #rysuje pola na szachownicy
+    highlight_squares(screen, gs, valid_moves, sq_selected)
+    drawPieces(screen, gs.board) #rysuje figury szachowe na polach szachownicy 
+    drawMoveLog(screen, gs, move_log_font)
+
+"""
+rysuje pola na szachownicy. Pole w lewym górnym rogu jest jasnego koloru
+"""
+def drawBoard(screen):
+    global colors
+    colors = ["white", "gray"]
+    for r in range(DIMENSION):
+        for c in range(DIMENSION):
+            color = colors[((r+c)%2)] 
+            p.draw.rect(screen, color, p.Rect(c*SQ_SIZE, r*SQ_SIZE, SQ_SIZE, SQ_SIZE))
+
 
 """
 Funkcja odpowiedzialna za podświetlenie wybranej bierki i pól na które dana bierka może przejść w danym ruchu
@@ -144,30 +165,6 @@ def highlight_squares(screen, gs, valid_moves, sq_selected):
                     if gs.board[move.end_row][move.end_column][0] == ('b' if gs.whiteToMove else 'w'):
                         screen.blit(s, (move.end_column * SQ_SIZE, move.end_row *SQ_SIZE))
 
-
-
-
-
-"""
-Odpowiedzialna za grafikę powiązaną z danym stanem gry 
-"""
-def draw_game_state(screen, gs, valid_moves, sq_selected):
-    drawBoard(screen) #rysuje pola na szachownicy
-    highlight_squares(screen, gs, valid_moves, sq_selected)
-    drawPieces(screen, gs.board) #rysuje figury szachowe na polach szachownicy 
-
-
-"""
-rysuje pola na szachownicy. Pole w lewym górnym rogu jest jasnego koloru
-"""
-def drawBoard(screen):
-    global colors
-    colors = ["white", "gray"]
-    for r in range(DIMENSION):
-        for c in range(DIMENSION):
-            color = colors[((r+c)%2)] 
-            p.draw.rect(screen, color, p.Rect(c*SQ_SIZE, r*SQ_SIZE, SQ_SIZE, SQ_SIZE))
-
 """
 Rysuje figury na szachownicy w oparciu o aktualny stan gry: GamesState.board
 """
@@ -177,6 +174,35 @@ def drawPieces(screen, board):
             piece = board[r][c]
             if piece != "--": #Sprawdzenie czy pole nie jest puste
                 screen.blit(IMAGES[piece], p.Rect(c*SQ_SIZE, r*SQ_SIZE, SQ_SIZE, SQ_SIZE))
+
+"""
+Wypisuje log z wykonanymi ruchami po prawej stronie szachownicy
+"""
+def drawMoveLog(screen, gs, font):
+    move_log_rect = p.Rect(BOARD_WIDTH, 0, MOVE_LOG_PANEL_WIDTH, MOVE_LOG_PANEL_HEIGHT)
+    p.draw.rect(screen, p.Color("#E7DFC6"), move_log_rect)
+    move_log = gs.moveLog
+    move_texts = []
+    for i in range(0, len(move_log), 2):
+        move_string = str(i//2 + 1) + ". " + str(move_log[i]) + " " #pierwsza tura wyświetlana jako 1. a nie 0. oraz dwa ruchy stanowią jedną pełną turę
+        if i+1 < len(move_log): #warunek zapewniający, że drugi gracz wykonał swój ruch
+            move_string += str(move_log[i+1]) + " "
+        move_texts.append(move_string) 
+    
+    moves_per_row = 3
+    padding_text = 5
+    line_spacing = 2
+    text_y = padding_text
+    for i in range(0, len(move_texts), moves_per_row):
+        text = ""
+        for j in range(moves_per_row):
+            if i + j < len(move_texts):
+                text += move_texts[i+j]
+        text_object = font.render(text, True, p.Color("#131B23"))
+        text_location = move_log_rect.move(padding_text, text_y)
+        screen.blit(text_object, text_location)
+        text_y += text_object.get_height() + line_spacing
+
 
 
 """
@@ -207,10 +233,10 @@ def animate_move(move, screen, board, clock):
         p.display.flip()
         clock.tick(60)
 
-def draw_text(screen, text):
+def draw_end_game_text(screen, text):
     font = p.font.SysFont("Helvitca", 32, True, False)
     text_object = font.render(text, 0, p.Color("green"))
-    text_location = p.Rect(0, 0, WIDTH, HEIGHT).move(WIDTH/2 - text_object.get_width()/2, HEIGHT/2 - text_object.get_height()/2) #wyśrodkowanie napisu na ekranie
+    text_location = p.Rect(0, 0, BOARD_WIDTH, BOARD_HEIGHT).move(BOARD_WIDTH/2 - text_object.get_BOARD_WIDTH()/2, BOARD_HEIGHT/2 - text_object.get_BOARD_HEIGHT()/2) #wyśrodkowanie napisu na ekranie
     screen.blit(text_object, text_location)
     text_object = font.render(text, 0, p.Color("blue"))
     screen.blit(text_object, text_location.move(2, 2))

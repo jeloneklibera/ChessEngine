@@ -544,6 +544,7 @@ class Move():
         self.is_castle_move = is_castle_move
         if en_passant:
             self.piece_captured = 'bp' if self.piece_moved == 'wp' else 'wp' #bicie w przelocie bije pionka o przeciwnym kolorze
+        self.is_capture = self.piece_captured != "--"
         self.move_id = self.start_row * 1000 + self.start_column * 100 + self.end_row * 10 + self.end_column #unikalne ID ruchu
 
         
@@ -566,3 +567,29 @@ class Move():
 
     def get_rank_file(self, row, col):
         return self.cols_to_files[col] + self.rows_to_ranks[row]
+
+    #przeciążenie funkcji str()
+    def __str__(self):
+        #roszada
+        if self.is_castle_move:
+            return "O-O" if self.end_column == 6 else "O-O-O"
+          
+        end_square = self.get_rank_file(self.end_row, self.end_column)
+        #ruchy pionkami
+        if self.piece_moved[1] == "p":
+            if self.is_capture:  
+                return self.cols_to_files[self.start_column] + "x" + end_square
+            else:
+                return end_square
+
+            #TO DO - promocja piona
+
+        #TO DO - dwie figury tego samego typu mogą się ruszyć na to samo pole
+
+        #TO DO - "+" gdy dany ruch jest szachem i "#" gdy jest szach mat
+
+        #ruchy figur
+        move_string = self.piece_moved[1] 
+        if self.is_capture:
+            move_string += "x"
+        return move_string + end_square
